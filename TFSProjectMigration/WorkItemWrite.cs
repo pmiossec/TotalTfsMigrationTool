@@ -398,22 +398,40 @@ namespace TFSProjectMigration
 
             if (tree.FirstChild != null)
             {
-                int myNodeCount = tree.FirstChild.ChildNodes.Count;
-                for (int i = 0; i < myNodeCount; i++)
-                {
-                    XmlNode Node = tree.ChildNodes[0].ChildNodes[i];
-                    try
-                    {
-                        css.CreateNode(Node.Attributes["Name"].Value, pathRoot.Uri);
-                    }
-                    catch (Exception)
-                    {
-                        //node already exists
-                        continue;
-                    }
-                }
+                var firstChild = tree.FirstChild;
+                CreateIterationNodes(firstChild, css, pathRoot);
             }
             RefreshCache();
+        }
+
+        private static void CreateIterationNodes(XmlNode node, ICommonStructureService css,
+            NodeInfo pathRoot)
+        {
+            int myNodeCount = node.ChildNodes.Count;
+            for (int i = 0; i < myNodeCount; i++)
+            {
+                XmlNode childNode = node.ChildNodes[i];
+                string value;
+                try
+                {
+                    value = css.CreateNode(childNode.Attributes["Name"].Value, pathRoot.Uri);
+                    Console.WriteLine("NodeCreated:" + value);
+                }
+                catch (Exception)
+                {
+                    //node already exists
+                    continue;
+                }
+                if (node.HasChildNodes)
+                {
+                    var nodePath = css.GetNode(value);
+                    foreach (XmlNode subChildNode in childNode.ChildNodes)
+                    {
+                        CreateIterationNodes(subChildNode, css, nodePath);
+                    }
+                }
+
+            }
         }
 
         public void GenerateAreas(XmlNode tree, string sourceProjectName)
