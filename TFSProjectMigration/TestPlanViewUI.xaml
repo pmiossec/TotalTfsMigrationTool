@@ -1,0 +1,9 @@
+﻿<Window x:Class="TFSProjectMigration.TestPlanViewUI"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Test Plan View" Height="547.674" Width="559.302">
+    <Grid>
+        <Label x:Name="Labal1" Content="" HorizontalAlignment="Left" VerticalAlignment="Top" Width="150" Margin="10,10,0,0"/>
+        <TreeView x:Name="TreeMain" HorizontalAlignment="Left" Margin="10,45,0,21" Width="522"/>
+    </Grid>
+</Window>
