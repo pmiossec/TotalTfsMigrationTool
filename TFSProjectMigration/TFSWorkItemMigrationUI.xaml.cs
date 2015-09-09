@@ -148,7 +148,7 @@ namespace TFSProjectMigration
 
         public void projectMigration()
         {
-            logger.Info(String.Format("--------------------------------Migration from {0} to {1} Start----------------------------------------------", sourceProject.Name, destinationProject.Name));
+            logger.InfoFormat("--------------------------------Migration from '{0}' to '{1}' Start----------------------------------------------", sourceProject.Name, destinationProject.Name);
             CheckTestPlanTextBlock.Dispatcher.BeginInvoke(new Action(delegate()
             {
                 CheckTestPlanTextBlock.Visibility = Visibility.Hidden;

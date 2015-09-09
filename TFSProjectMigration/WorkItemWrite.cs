@@ -124,8 +124,8 @@ namespace TFSProjectMigration
             }
             catch (Exception)
             {
-                logger.Info(String.Format("Failed to save state for workItem : {0}  type:{1} state from {2} to {3}", workItem.Id, workItem.Type.Name, orginalSourceState, destState));
-                logger.Info(String.Format("rolling workItem status to original state {0}", orginalSourceState));
+                logger.WarnFormat("Failed to save state for workItem: {0}  type:'{1}' state from '{2}' to '{3}' => rolling workItem status to original state '{4}'",
+                    workItem.Id, workItem.Type.Name, orginalSourceState, destState, orginalSourceState);
                 //Revert back to the original value.
                 workItem.Fields["State"].Value = orginalSourceState;
                 return false;
@@ -149,8 +149,8 @@ namespace TFSProjectMigration
             }
             catch (Exception)
             {
-                logger.Info(String.Format("Failed to save state for workItem: {0}  type:{1} state from {2} to {3}", workItem.Id.ToString(), workItem.Type.Name, orginalSourceState, destState));
-                logger.Info(String.Format("rolling workItem status to original state {0}", orginalSourceState));
+                logger.WarnFormat("Failed to save state for workItem: {0}  type:'{1}' state from '{2}' to '{3}' =>rolling workItem status to original state '{4}'",
+                    workItem.Id, workItem.Type.Name, orginalSourceState, destState, orginalSourceState);
                 //Revert back to the original value.
                 workItem.Fields["State"].Value = orginalSourceState;
                 return false;
@@ -187,7 +187,7 @@ namespace TFSProjectMigration
                 }
                 else
                 {
-                    logger.Info(String.Format("Work Item Type {0} does not exist in target TFS", workItem.Type.Name));
+                    logger.InfoFormat("Work Item Type {0} does not exist in target TFS", workItem.Type.Name);
                     continue;
                 }
 
@@ -241,7 +241,7 @@ namespace TFSProjectMigration
                 }
                 else
                 {
-                    logger.Info(String.Format("Work item {0} could not be saved", workItem.Id));
+                    logger.ErrorFormat("Work item {0} could not be saved", workItem.Id);
                 }
 
                 ProgressBar.Dispatcher.BeginInvoke(new Action(delegate()
@@ -338,9 +338,10 @@ namespace TFSProjectMigration
                                             logger.Info("WorkItem Validation failed at link setup for work item: " + workItem.Id);
                                         }
                                     }
-                                    catch (Exception)
+                                    catch (Exception ex)
                                     {
-                                        logger.Info(String.Format("Error occured when crearting link for work item: {0} target item: {1}", workItem.Id, link.TargetId));
+                                        logger.ErrorFormat("Error occured when crearting link for work item: {0} target item: {1}", workItem.Id, link.TargetId);
+                                        logger.Error("Error detail", ex);
                                     }
 
                                 }
@@ -352,7 +353,7 @@ namespace TFSProjectMigration
                         }
                         catch (Exception)
                         {
-                            logger.Info("Link is not created for work item: " + workItem.Id + " - target item: " + link.TargetId + " is not in Source TFS or you do not have permission to access");
+                            logger.Warn("Link is not created for work item: " + workItem.Id + " - target item: " + link.TargetId + " is not in Source TFS or you do not have permission to access");
                         }
                     }
                     //add the work item to list if the links are processed
@@ -382,9 +383,10 @@ namespace TFSProjectMigration
                         workItem.Attachments.Add(new Attachment(name, comment));
                     }
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
-                    logger.Info(String.Format("Error saving attachment: {0} for workitem: {1}", att.Name, workItemOld.Id));
+                    logger.ErrorFormat("Error saving attachment: {0} for workitem: {1}", att.Name, workItemOld.Id);
+                    logger.Error("Error detail: ", ex);
                 }
             }
         }
@@ -618,7 +620,7 @@ namespace TFSProjectMigration
                     }
                     catch (Exception)
                     {
-                        logger.Info(String.Format("Error adding new field for parent node : {0}", parentNode.Value));
+                        logger.ErrorFormat("Error adding new field for parent node : {0}", parentNode.Value);
                     }
                 }
             }
@@ -643,7 +645,7 @@ namespace TFSProjectMigration
             else
             {
                 System.Diagnostics.Debug.WriteLine("Field already exists...");
-                logger.Info(String.Format("Field {0} already exists", fieldName));
+                logger.InfoFormat("Field {0} already exists", fieldName);
             }
             return workItemTypeXml;
         }
@@ -696,7 +698,7 @@ namespace TFSProjectMigration
                     }
                     catch (Exception ex)
                     {
-                        logger.Info("Error Replacing work flow");
+                        logger.Error("Error Replacing work flow");
                         error = error + "Error Replacing work flow for " + (string)list[0] + ":" + ex.Message + "\n";
                     }
 
@@ -775,7 +777,7 @@ namespace TFSProjectMigration
                         }
                         else
                         {
-                            logger.Info(String.Format("Query Folder {0} already exists", subQuery));
+                            logger.WarnFormat("Query Folder {0} already exists", subQuery);
                         }
 
                     }
@@ -792,7 +794,7 @@ namespace TFSProjectMigration
                         }
                         else
                         {
-                            logger.Info(String.Format("Query Definition {0} already exists", subQuery));
+                            logger.WarnFormat("Query Definition {0} already exists", subQuery);
                         }
                     }
                 }
@@ -800,7 +802,7 @@ namespace TFSProjectMigration
                 {
                     if (newItem != null)
                         newItem.Delete();
-                    logger.Info(String.Format("Error creating Query: {0} : {1}", subQuery, ex.Message));
+                    logger.ErrorFormat("Error creating Query: {0} : {1}", subQuery, ex.Message);
                     continue;
                 }
 
