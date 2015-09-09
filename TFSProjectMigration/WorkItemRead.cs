@@ -42,7 +42,7 @@ namespace TFSProjectMigration
             WorkItemCollection workItemCollection = store.Query(" SELECT * " +
                                                                  " FROM WorkItems " +
                                                                  " WHERE [System.TeamProject] = '" + project +
-                                                                 "'AND [System.State] <> 'Closed' ORDER BY [System.Id]");
+                                                                 "' AND [System.State] <> 'Closed' ORDER BY [System.Id]");
             SaveAttachments(workItemCollection);
             return workItemCollection;
         }
@@ -56,7 +56,7 @@ namespace TFSProjectMigration
                 query = String.Format(" SELECT * " +
                                                     " FROM WorkItems " +
                                                     " WHERE [System.TeamProject] = '" + project +
-                                                    "'AND [System.State] <> 'Closed' AND [System.State] <> 'Removed' ORDER BY [System.Id]");
+                                                    "' AND [System.State] <> 'Closed' AND [System.State] <> 'Removed' ORDER BY [System.Id]");
             }
 
             else if (IsNotIncludeRemoved)
@@ -64,14 +64,14 @@ namespace TFSProjectMigration
                 query = String.Format(" SELECT * " +
                                                    " FROM WorkItems " +
                                                    " WHERE [System.TeamProject] = '" + project +
-                                                   "'AND [System.State] <> 'Removed' ORDER BY [System.Id]");
+                                                   "' AND [System.State] <> 'Removed' ORDER BY [System.Id]");
             }
             else if (IsNotIncludeClosed)
             {
                 query = String.Format(" SELECT * " +
                                                    " FROM WorkItems " +
                                                    " WHERE [System.TeamProject] = '" + project +
-                                                   "'AND [System.State] <> 'Closed'  ORDER BY [System.Id]");
+                                                   "' AND [System.State] <> 'Closed'  ORDER BY [System.Id]");
             }
             else
             {
