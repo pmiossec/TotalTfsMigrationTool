@@ -392,7 +392,7 @@ namespace TFSProjectMigration
 
         public void GenerateIterations(XmlNode tree, string sourceProjectName)
         {
-            ICommonStructureService css = (ICommonStructureService)tfs.GetService(typeof(ICommonStructureService));
+            ICommonStructureService4 css = (ICommonStructureService4)tfs.GetService(typeof(ICommonStructureService4));
             string rootNodePath = string.Format("\\{0}\\Iteration", projectName);
             var pathRoot = css.GetNodeFromPath(rootNodePath);
 
@@ -404,30 +404,50 @@ namespace TFSProjectMigration
             RefreshCache();
         }
 
-        private static void CreateIterationNodes(XmlNode node, ICommonStructureService css,
+        private static void CreateIterationNodes(XmlNode node, ICommonStructureService4 css,
             NodeInfo pathRoot)
         {
             int myNodeCount = node.ChildNodes.Count;
             for (int i = 0; i < myNodeCount; i++)
             {
                 XmlNode childNode = node.ChildNodes[i];
-                string value;
+                NodeInfo createdNode;
+                var name = childNode.Attributes["Name"].Value;
                 try
                 {
-                    value = css.CreateNode(childNode.Attributes["Name"].Value, pathRoot.Uri);
-                    Console.WriteLine("NodeCreated:" + value);
+                    var uri = css.CreateNode(name, pathRoot.Uri);
+                    Console.WriteLine("NodeCreated:" + uri);
+                    createdNode = css.GetNode(uri);
                 }
                 catch (Exception)
                 {
                     //node already exists
-                    continue;
+                    createdNode = css.GetNodeFromPath(pathRoot.Path + @"\" + name);
+                    //continue;
                 }
-                if (node.HasChildNodes)
+                DateTime? startDateToUpdate = null;
+                if (!createdNode.StartDate.HasValue)
                 {
-                    var nodePath = css.GetNode(value);
+                    var startDate = childNode.Attributes["StartDate"];
+                    DateTime startDateParsed;
+                    if (startDate != null && DateTime.TryParse(startDate.Value, out startDateParsed))
+                        startDateToUpdate = startDateParsed;
+                }
+                DateTime? finishDateToUpdate = null;
+                if (!createdNode.FinishDate.HasValue)
+                {
+                    DateTime finishDateParsed;
+                    var finishDate = childNode.Attributes["FinishDate"];
+                    if (finishDate != null && DateTime.TryParse(finishDate.Value, out finishDateParsed))
+                        finishDateToUpdate = finishDateParsed;
+                }
+                if(startDateToUpdate.HasValue || finishDateToUpdate.HasValue)
+                    css.SetIterationDates(createdNode.Uri, startDateToUpdate, finishDateToUpdate);
+                if (createdNode != null && node.HasChildNodes)
+                {
                     foreach (XmlNode subChildNode in childNode.ChildNodes)
                     {
-                        CreateIterationNodes(subChildNode, css, nodePath);
+                        CreateIterationNodes(subChildNode, css, createdNode);
                     }
                 }
 
