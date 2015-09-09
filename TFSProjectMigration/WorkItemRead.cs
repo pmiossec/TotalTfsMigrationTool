@@ -1,18 +1,10 @@
 ﻿using System;
-using System.Collections;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows;
-using Microsoft.TeamFoundation.Proxy;
 using Microsoft.TeamFoundation.Server;
 using Microsoft.TeamFoundation.Client;
-using Microsoft.TeamFoundation.TestManagement.Client;
 using Microsoft.TeamFoundation.WorkItemTracking.Client;
 using System.Xml;
 using System.IO;
-using log4net.Config;
 using log4net;
 
 namespace TFSProjectMigration

@@ -2,20 +2,14 @@
 using System.Collections.Generic;
 using System.Collections;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Microsoft.TeamFoundation.Proxy;
 using Microsoft.TeamFoundation.Server;
 using Microsoft.TeamFoundation.Client;
-using Microsoft.TeamFoundation.TestManagement.Client;
 using Microsoft.TeamFoundation.WorkItemTracking.Client;
 using Microsoft.TeamFoundation.WorkItemTracking.Proxy;
 using System.Xml;
 using System.IO;
-using log4net.Config;
 using log4net;
 using System.Windows.Controls;
-using System.Text.RegularExpressions;
 
 namespace TFSProjectMigration
 {
@@ -493,20 +487,20 @@ namespace TFSProjectMigration
             int nodeCount = tree.FirstChild.ChildNodes.Count;
             for (int i = 0; i < nodeCount; i++)
             {
-                XmlNode Node = tree.ChildNodes[0].ChildNodes[i];
+                XmlNode node = tree.ChildNodes[0].ChildNodes[i];
                 try
                 {
-                    css.CreateNode(Node.Attributes["Name"].Value, path.Uri);
+                    css.CreateNode(node.Attributes["Name"].Value, path.Uri);
                 }
                 catch (Exception ex)
                 {
                     //node already exists
                     continue;
                 }
-                if (Node.FirstChild != null)
+                if (node.FirstChild != null)
                 {
-                    string newPath = nodePath + "\\" + Node.Attributes["Name"].Value;
-                    GenerateSubAreas(Node, newPath, css);
+                    string newPath = nodePath + "\\" + node.Attributes["Name"].Value;
+                    GenerateSubAreas(node, newPath, css);
                 }
             }
         }
