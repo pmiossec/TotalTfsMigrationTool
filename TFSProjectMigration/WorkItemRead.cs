@@ -159,16 +159,13 @@ namespace TFSProjectMigration
             ProjectInfo projectInfo = css.GetProjectFromName(projectName);
             NodeInfo[] nodes = css.ListStructures(projectInfo.Uri);
 
-            //GetNodes can use with:
-            //Area = 0
-            //Iteration = 1
-            XmlElement AreaTree = css.GetNodesXml(new string[] { nodes[0].Uri }, true);
-            XmlElement IterationsTree = css.GetNodesXml(new string[] { nodes[1].Uri }, true);
+            XmlElement areaTree = css.GetNodesXml(new[] { nodes.Single(n => n.StructureType == "ProjectModelHierarchy").Uri }, true);
+            XmlElement iterationsTree = css.GetNodesXml(new[] { nodes.Single(n => n.StructureType == "ProjectLifecycle").Uri }, true);
 
-            XmlNode AreaNodes = AreaTree.ChildNodes[0];
-            XmlNode IterationsNodes = IterationsTree.ChildNodes[0];
+            XmlNode areaNodes = areaTree.ChildNodes[0];
+            XmlNode iterationsNodes = iterationsTree.ChildNodes[0];
 
-            return new XmlNode[] { AreaNodes, IterationsNodes };
+            return new XmlNode[] { areaNodes, iterationsNodes };
         }
 
 
