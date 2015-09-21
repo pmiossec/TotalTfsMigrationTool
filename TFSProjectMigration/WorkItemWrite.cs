@@ -128,13 +128,13 @@ namespace TFSProjectMigration
                     }
                     else
                     {
-                        var initialValue = item.Value.ToString();
+                        var initialValue = FindBestState(item.Value.ToString(), item.AllowedValues);
                         var allowedValueSortedByAcceptability =
                             item.AllowedValues.OfType<string>().OrderBy(e => LevenshteinDistance.Compute(initialValue, e));
                         var value = allowedValueSortedByAcceptability.First();
                         item.Value = value;
                         logger.WarnFormat("Work item {0} Validation Error in field: {1}  : {2}=> Replaced by value: {3}", workItem.Id,
-                            item.Name, initialValue, value);
+                            item.Name, destState, value);
                     }
                 }
                 workItem.Save();
@@ -147,6 +147,23 @@ namespace TFSProjectMigration
                 //Revert back to the original value.
                 workItem.Fields["State"].Value = orginalSourceState;
                 return false;
+            }
+        }
+
+        private string FindBestState(string currentValue, AllowedValuesCollection allowedValues)
+        {
+            switch (currentValue)
+            {
+                case "Fermé":
+                    if (allowedValues.Contains("Closed"))
+                        return "Closed";
+                    return currentValue;
+                case "Actif":
+                    if (allowedValues.Contains("Active"))
+                        return "Active";
+                    return currentValue;
+                default:
+                    return currentValue;
             }
         }
 
