@@ -26,6 +26,8 @@ namespace TFSProjectMigration
         public Hashtable itemMap;
         public Hashtable itemMapCIC;
         private static readonly ILog logger = LogManager.GetLogger(typeof(TFSWorkItemMigrationUI));
+        bool CorrectErrorsAbsolutely = true;
+
 
         public WorkItemWrite(TfsTeamProjectCollection tfs, Project destinationProject)
         {
@@ -106,13 +108,35 @@ namespace TFSProjectMigration
             }
         }
 
-        private bool ChangeWorkItemStatus(WorkItem workItem, string orginalSourceState, string destState)
+        private bool ChangeWorkItemStatus(WorkItem workItem, string orginalSourceState, string destState, string reason = null)
         {
             //Try to save the new state.  If that fails then we also go back to the orginal state.
             try
             {
                 workItem.Open();
                 workItem.Fields["State"].Value = destState;
+                if(reason != null)
+                    workItem.Fields["Reason"].Value = reason;
+                
+                var errors = workItem.Validate();
+                foreach (Field item in errors)
+                {
+                    if (!CorrectErrorsAbsolutely)
+                    {
+                        logger.WarnFormat("Work item {0} Validation Error in field: {1}  : {2}", workItem.Id,
+                            item.Name, workItem.Fields[item.Name].Value);
+                    }
+                    else
+                    {
+                        var initialValue = item.Value.ToString();
+                        var allowedValueSortedByAcceptability =
+                            item.AllowedValues.OfType<string>().OrderBy(e => LevenshteinDistance.Compute(initialValue, e));
+                        var value = allowedValueSortedByAcceptability.First();
+                        item.Value = value;
+                        logger.WarnFormat("Work item {0} Validation Error in field: {1}  : {2}=> Replaced by value: {3}", workItem.Id,
+                            item.Name, initialValue, value);
+                    }
+                }
                 workItem.Save();
                 return true;
             }
@@ -125,32 +149,6 @@ namespace TFSProjectMigration
                 return false;
             }
         }
-
-        //save final state transition and set final reason.
-        private bool ChangeWorkItemStatus(WorkItem workItem, string orginalSourceState, string destState, string reason)
-        {
-            //Try to save the new state.  If that fails then we also go back to the orginal state.
-            try
-            {
-                workItem.Open();
-                workItem.Fields["State"].Value = destState;
-                workItem.Fields["Reason"].Value = reason;
- 
-                ArrayList list = workItem.Validate();
-                workItem.Save();
-
-                return true;
-            }
-            catch (Exception)
-            {
-                logger.WarnFormat("Failed to save state for workItem: {0}  type:'{1}' state from '{2}' to '{3}' =>rolling workItem status to original state '{4}'",
-                    workItem.Id, workItem.Type.Name, orginalSourceState, destState, orginalSourceState);
-                //Revert back to the original value.
-                workItem.Fields["State"].Value = orginalSourceState;
-                return false;
-            }
-        }
-
 
         /* Copy work items to project from work item collection */
         public void writeWorkItems(WorkItemStore sourceStore, WorkItemCollection workItemCollection, string sourceProjectName, ProgressBar ProgressBar, Hashtable fieldMapAll)
@@ -217,13 +215,12 @@ namespace TFSProjectMigration
                     }
                 }
 
-                bool correctErrorsAbsolutely = false;
                 /* Validate Item Before Save*/
                 ArrayList array = newWorkItem.Validate();
                 bool isInError = array.Count != 0;
                 foreach (Field item in array)
                 {
-                    if (!correctErrorsAbsolutely)
+                    if (!CorrectErrorsAbsolutely)
                     {
                         logger.WarnFormat("Work item {0} Validation Error in field: {1}  : {2}", workItem.Id,
                             item.Name, newWorkItem.Fields[item.Name].Value);
@@ -239,7 +236,7 @@ namespace TFSProjectMigration
                             item.Name, initialValue, value);
                     }
                 }
-                if (isInError && correctErrorsAbsolutely)
+                if (isInError && CorrectErrorsAbsolutely)
                     array = newWorkItem.Validate();
                 //if work item is valid
                 if (array.Count == 0)
