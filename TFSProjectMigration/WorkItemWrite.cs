@@ -167,17 +167,17 @@ namespace TFSProjectMigration
 
                 WorkItem newWorkItem = null;
                 Hashtable fieldMap = ListToTable((List<object>)fieldMapAll[workItem.Type.Name]);
-                if (workItem.Type.Name == "User Story")
+                if (workItemTypes.Contains(workItem.Type.Name))
+                {
+                    newWorkItem = new WorkItem(workItemTypes[workItem.Type.Name]);
+                }
+                else if (workItem.Type.Name == "User Story")
                 {
                     newWorkItem = new WorkItem(workItemTypes["Product Backlog Item"]);
                 }
                 else if (workItem.Type.Name == "Issue")
                 {
                     newWorkItem = new WorkItem(workItemTypes["Impediment"]);
-                }
-                else if (workItemTypes.Contains(workItem.Type.Name))
-                {
-                    newWorkItem = new WorkItem(workItemTypes[workItem.Type.Name]);
                 }
                 else
                 {
@@ -816,17 +816,17 @@ namespace TFSProjectMigration
                 List<string> targetList = new List<string>();
 
                 WorkItemType workItemTypeTarget = null;
-                if (workItemTypeSource.Name == "User Story")
+                if (workItemTypes.Contains(workItemTypeSource.Name))
                 {
-                    workItemTypeTarget = workItemTypes["Product Backlog Item"];
+                    workItemTypeTarget = workItemTypes[workItemTypeSource.Name];
+                }
+                else if (workItemTypeSource.Name == "User Story")
+                {
+                     workItemTypeTarget = workItemTypes["Product Backlog Item"];
                 }
                 else if (workItemTypeSource.Name == "Issue")
                 {
                     workItemTypeTarget = workItemTypes["Impediment"];
-                }
-                else if (workItemTypes.Contains(workItemTypeSource.Name))
-                {
-                    workItemTypeTarget = workItemTypes[workItemTypeSource.Name];
                 }
                 else
                 {
