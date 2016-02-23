@@ -54,7 +54,7 @@ namespace TFSProjectMigration
         public TFSWorkItemMigrationUI()
         {
             InitializeComponent();
-            DOMConfigurator.Configure();
+            XmlConfigurator.Configure();
         }
 
         private void ConnectSourceProjectButton_Click(object sender, RoutedEventArgs e)
