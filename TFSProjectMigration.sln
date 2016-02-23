@@ -1,6 +1,8 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 2013
+# Visual Studio 14
+VisualStudioVersion = 14.0.24720.0
+MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Total TFS Migration Tool", "TFSProjectMigration\Total TFS Migration Tool.csproj", "{E72A0E36-2AC1-4BBE-9298-AB47BAF401D1}"
 EndProject
 Global
