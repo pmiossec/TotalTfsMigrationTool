@@ -257,7 +257,11 @@ namespace TFSProjectMigration
             {
                 foreach (object[] item in map)
                 {
-                    table.Add((string)item[0], (string)item[1]);
+                    try {
+	                    table.Add((string)item[0], (string)item[1]);
+                    } catch (Exception ex) {
+                    	logger.Error("Error in ListToTable", ex);
+                    }
                 }
             }
             return table;
