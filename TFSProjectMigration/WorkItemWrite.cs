@@ -32,7 +32,8 @@ namespace TFSProjectMigration
             this.tfs = tfs;
             projectName = destinationProject.Name;
             this.destinationProject = destinationProject;
-            store = (WorkItemStore)tfs.GetService(typeof(WorkItemStore));
+            //store = (WorkItemStore)tfs.GetService(typeof(WorkItemStore));
+            store = new WorkItemStore(tfs, WorkItemStoreFlags.BypassRules);
             queryCol = store.Projects[destinationProject.Name].QueryHierarchy;
             workItemTypes = store.Projects[destinationProject.Name].WorkItemTypes;
             itemMap = new Hashtable();
@@ -227,7 +228,25 @@ namespace TFSProjectMigration
                 if (array.Count == 0)
                 {
                     UploadAttachments(newWorkItem, workItem);
-                    newWorkItem.Save();
+
+                    //foreach(Field f in newWorkItem.Fields)
+                    //{
+                    //    if(f.IsRequired)
+                    //    {
+
+                    //    }
+                    //    if(!f.IsValid)
+                    //    {
+                    //    }
+                    //}
+
+                    try
+                    {
+                        newWorkItem.Save();
+                    }
+                    catch (Exception ex)
+                    {
+                    }
                     itemMap.Add(workItem.Id, newWorkItem.Id);
                     newItems.Add(workItem);
                     //update workitem status
@@ -358,6 +377,13 @@ namespace TFSProjectMigration
                     linkedWorkItemList.Add(workItem.Id);
 
                 }
+
+                //ProgressBar.Dispatcher.BeginInvoke(new Action(delegate ()
+                //{
+                //    float progress = (float)workItem.Id / (float)workItemCollection.Count;
+                //    ProgressBar.Value = ((float)workItem.Id / (float)workItemCollection.Count) * 100;
+                //}));
+
             }
         }
 
