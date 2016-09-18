@@ -32,7 +32,7 @@ namespace TFSProjectMigration
             this.tfs = tfs;
             projectName = destinationProject.Name;
             this.destinationProject = destinationProject;
-            store = (WorkItemStore)tfs.GetService(typeof(WorkItemStore));
+            store = new WorkItemStore(tfs, WorkItemStoreFlags.BypassRules);
             queryCol = store.Projects[destinationProject.Name].QueryHierarchy;
             workItemTypes = store.Projects[destinationProject.Name].WorkItemTypes;
             itemMap = new Hashtable();
@@ -226,7 +226,14 @@ namespace TFSProjectMigration
                 if (array.Count == 0)
                 {
                     UploadAttachments(newWorkItem, workItem);
-                    newWorkItem.Save();
+
+                    try
+                    {
+                        newWorkItem.Save();
+                    }
+                    catch (Exception ex)
+                    {
+                    }
                     itemMap.Add(workItem.Id, newWorkItem.Id);
                     newItems.Add(workItem);
                     //update workitem status

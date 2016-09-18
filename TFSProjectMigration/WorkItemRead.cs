@@ -105,11 +105,12 @@ namespace TFSProjectMigration
                             {
                                 Directory.CreateDirectory(path);
                             }
-                            if (!File.Exists(path + "\\" + att.Name))
+                            var fileInfo = new FileInfo(path +"\\" + att.Name);
+                            if (!fileInfo.Exists)
                             {
                                 webClient.DownloadFile(att.Uri, path + "\\" + att.Name);
                             }
-                            else
+                            else if(fileInfo.Length != att.Length)
                             {
                                 webClient.DownloadFile(att.Uri, path + "\\" + att.Id + "_" + att.Name);
                             }
