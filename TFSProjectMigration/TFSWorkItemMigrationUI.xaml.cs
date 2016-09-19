@@ -162,7 +162,7 @@ namespace TFSProjectMigration
             {
                 StatusBar.Visibility = Visibility.Visible;
             }));
-            WorkItemCollection source = readSource.GetWorkItems(sourceProject.Name, IsNotIncludeClosed, IsNotIncludeRemoved); //Get Workitems from source tfs 
+            WorkItemCollection source = readSource.GetWorkItems(sourceProject.Name, IsNotIncludeClosed, IsNotIncludeRemoved, StatusBar); //Get Workitems from source tfs 
             XmlNode[] iterations = readSource.PopulateIterations(); //Get Iterations and Areas from source tfs 
 
             StatusViwer.Dispatcher.BeginInvoke(new Action(delegate()
