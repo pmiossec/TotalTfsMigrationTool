@@ -29,18 +29,18 @@ namespace TFSProjectMigration
         }
 
         /* Get required work items from project and save existing attachments of workitems to local folder */
-        public WorkItemCollection GetWorkItems(string project)
+        public WorkItemCollection GetWorkItems(string project, System.Windows.Controls.ProgressBar ProgressBar)
         {
             WorkItemCollection workItemCollection = store.Query(" SELECT * " +
                                                                  " FROM WorkItems " +
                                                                  " WHERE [System.TeamProject] = '" + project +
                                                                  "' AND [System.State] <> 'Closed' ORDER BY [System.Id]");
-            SaveAttachments(workItemCollection);
+            SaveAttachments(workItemCollection, ProgressBar);
             return workItemCollection;
         }
 
 
-        public WorkItemCollection GetWorkItems(string project, bool IsNotIncludeClosed, bool IsNotIncludeRemoved)
+        public WorkItemCollection GetWorkItems(string project, bool IsNotIncludeClosed, bool IsNotIncludeRemoved, System.Windows.Controls.ProgressBar ProgressBar)
         {
             String query = "";
             if (IsNotIncludeClosed && IsNotIncludeRemoved)
@@ -74,11 +74,11 @@ namespace TFSProjectMigration
             }
             System.Diagnostics.Debug.WriteLine(query);
             WorkItemCollection workItemCollection = store.Query(query);
-            SaveAttachments(workItemCollection);
+            SaveAttachments(workItemCollection, ProgressBar);
             return workItemCollection;
         }
         /* Save existing attachments of workitems to local folders of workitem ID */
-        private void SaveAttachments(WorkItemCollection workItemCollection)
+        private void SaveAttachments(WorkItemCollection workItemCollection, System.Windows.Controls.ProgressBar ProgressBar)
         {
             if (!Directory.Exists(@"Attachments"))
             {
@@ -92,6 +92,7 @@ namespace TFSProjectMigration
             System.Net.WebClient webClient = new System.Net.WebClient();
             webClient.UseDefaultCredentials = true;
 
+            int index = 0;
             foreach (WorkItem wi in workItemCollection)
             {
                 if (wi.AttachedFileCount > 0)
@@ -127,6 +128,12 @@ namespace TFSProjectMigration
 
                     }
                 }
+                index++;
+                ProgressBar.Dispatcher.BeginInvoke(new Action(delegate ()
+                {
+                    float progress = (float)index / (float)workItemCollection.Count;
+                    ProgressBar.Value = ((float)index / (float)workItemCollection.Count) * 100;
+                }));
             }
         }
 
