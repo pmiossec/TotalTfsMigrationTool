@@ -456,9 +456,18 @@ namespace TFSProjectMigration
 
         public void GenerateAreas(XmlNode tree, string sourceProjectName)
         {
-            ICommonStructureService css = (ICommonStructureService)tfs.GetService(typeof(ICommonStructureService));
-            string rootNodePath = string.Format("\\{0}\\Area", projectName);
-            var pathRoot = css.GetNodeFromPath(rootNodePath);
+            ICommonStructureService css =  (ICommonStructureService)tfs.GetService(typeof(ICommonStructureService));
+	    // get project info
+            ProjectInfo projectInfo = css.GetProjectFromName(projectName);
+            NodeInfo[] nodes = css.ListStructures(projectInfo.Uri);
+
+            // find ProjectModelHierarchy (contains path for area node)
+	    var node = nodes.FirstOrDefault(n => n.StructureType == "ProjectModelHierarchy");
+
+            if (node == null)
+                return;
+            
+            var pathRoot = css.GetNodeFromPath(node.Path);
 
             if (tree.FirstChild != null)
             {
@@ -477,7 +486,7 @@ namespace TFSProjectMigration
                     }
                     if (Node.FirstChild != null)
                     {
-                        string nodePath = rootNodePath + "\\" + Node.Attributes["Name"].Value;
+                        string nodePath = node.Path + "\\" + Node.Attributes["Name"].Value;
                         GenerateSubAreas(Node, nodePath, css);
                     }
                 }
@@ -748,10 +757,19 @@ namespace TFSProjectMigration
             {
                 if (queryFolder.Name == "Team Queries" || queryFolder.Name == "Shared Queries")
                 {
-                    QueryFolder teamQueriesFolder = (QueryFolder)store.Projects[projectName].QueryHierarchy["Shared Queries"];
-                    SetQueryItem(queryFolder, teamQueriesFolder, sourceProjectName);
+                    QueryFolder teamQueriesFolder = null;
+                    
+                    if (store.Projects[projectName].QueryHierarchy.Contains("Shared Queries"))
+                        teamQueriesFolder = (QueryFolder)store.Projects[projectName].QueryHierarchy["Shared Queries"];
+                    // seems there is no way to get the localized name dynamically
+                    if (store.Projects[projectName].QueryHierarchy.Contains("Freigegebene Abfragen"))
+                        teamQueriesFolder = (QueryFolder)store.Projects[projectName].QueryHierarchy["Freigegebene Abfragen"];
 
-                    QueryFolder test = (QueryFolder)store.Projects[projectName].QueryHierarchy["Shared Queries"];
+                    if (teamQueriesFolder != null)
+                        SetQueryItem(queryFolder, teamQueriesFolder, sourceProjectName);
+
+                    // test seems to be unnecessary
+                    //QueryFolder test = (QueryFolder)store.Projects[projectName].QueryHierarchy["Shared Queries"];
                 }
 
             }
