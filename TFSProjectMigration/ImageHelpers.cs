@@ -9,9 +9,8 @@ using System.Windows.Controls;
 
 namespace TFSProjectMigration
 {
-    class ImageHelpers
+    internal class ImageHelpers
     {
-
         public static BitmapSource GetImageSource(System.Drawing.Bitmap bitmap)
         {
             return Imaging.CreateBitmapSourceFromHBitmap(bitmap.GetHbitmap(),

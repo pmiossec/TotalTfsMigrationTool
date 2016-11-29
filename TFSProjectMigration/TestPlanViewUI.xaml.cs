@@ -23,16 +23,16 @@ namespace TFSProjectMigration
     /// </summary>
     public partial class TestPlanViewUI : Window
     {
-        TfsTeamProjectCollection _tfs;
-        WorkItemStore _store;
+        private TfsTeamProjectCollection _tfs;
+        private WorkItemStore _store;
 
         public TfsTeamProjectCollection tfs
         {
             get { return _tfs; }
             set { _tfs = value; }
         }
-        string projectName = "aa";
-        Window mainWindow;
+        private string projectName = "aa";
+        private Window mainWindow;
         public string targetProjectName
         {
             get { return projectName; }
@@ -69,7 +69,7 @@ namespace TFSProjectMigration
         }
 
 
-        void GetTestPlans(ITestManagementTeamProject testproject)
+        private void GetTestPlans(ITestManagementTeamProject testproject)
         {
             ITestPlanCollection plans = testproject.TestPlans.Query("Select * From TestPlan");
 
@@ -90,7 +90,7 @@ namespace TFSProjectMigration
             }
         }
 
-        void GetPlanSuites(ITestSuiteEntryCollection suites, TreeViewItem tree_item)
+        private void GetPlanSuites(ITestSuiteEntryCollection suites, TreeViewItem tree_item)
         {
             foreach (ITestSuiteEntry suite_entry in suites)
             {
@@ -106,12 +106,11 @@ namespace TFSProjectMigration
 
                     if (suite.Entries.Count > 0)
                         GetPlanSuites(suite.Entries, suite_tree);
-
                 }
             }
         }
 
-        void GetTestCases(IStaticTestSuite suite, TreeViewItem tree_item)
+        private void GetTestCases(IStaticTestSuite suite, TreeViewItem tree_item)
         {
             //AllTestCases - Will show all the Test Cases under that Suite even in sub suites.
             //ITestCaseCollection testcases = suite.AllTestCases;

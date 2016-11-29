@@ -33,7 +33,6 @@ namespace TFSProjectMigration
     /// </summary>
     public partial class TFSWorkItemMigrationUI : Window
     {
-
         private TfsTeamProjectCollection sourceTFS;
         private TfsTeamProjectCollection destinationTFS;
         private WorkItemStore sourceStore;
@@ -44,12 +43,12 @@ namespace TFSProjectMigration
         public int migrationState = 0;
         private bool IsNotIncludeClosed = false;
         private bool IsNotIncludeRemoved = false;
-        WorkItemRead readSource;
-        WorkItemWrite writeTarget;
-        Hashtable fieldMap;
-        Hashtable finalFieldMap;
-        Hashtable copyingFieldSet;
-        List<object> migrateTypeSet;
+        private WorkItemRead readSource;
+        private WorkItemWrite writeTarget;
+        private Hashtable fieldMap;
+        private Hashtable finalFieldMap;
+        private Hashtable copyingFieldSet;
+        private List<object> migrateTypeSet;
 
         public TFSWorkItemMigrationUI()
         {
@@ -75,10 +74,10 @@ namespace TFSProjectMigration
                 finalFieldMap = new Hashtable();
                 copyingFieldSet = new Hashtable();
                 migrateTypeSet = new List<object>();
-                this.sourceTFS = tpp.SelectedTeamProjectCollection;
-                this.sourceStore = (WorkItemStore)sourceTFS.GetService(typeof(WorkItemStore));
+                sourceTFS = tpp.SelectedTeamProjectCollection;
+                sourceStore = (WorkItemStore)sourceTFS.GetService(typeof(WorkItemStore));
 
-                this.sourceProject = sourceStore.Projects[tpp.SelectedProjects[0].Name];
+                sourceProject = sourceStore.Projects[tpp.SelectedProjects[0].Name];
                 SourceProjectText.Text = string.Format("{0}/{1}", sourceTFS.Uri.ToString(), sourceProject.Name);
                 readSource = new WorkItemRead(sourceTFS, sourceProject);
 
@@ -86,7 +85,6 @@ namespace TFSProjectMigration
                 {
                     ConnectionStatusLabel.Content = "";
                 }
-
             }
         }
 
@@ -109,10 +107,10 @@ namespace TFSProjectMigration
                 copyingFieldSet = new Hashtable();
                 migrateTypeSet = new List<object>();
 
-                this.destinationTFS = tpp.SelectedTeamProjectCollection;
-                this.destinationStore = (WorkItemStore)destinationTFS.GetService(typeof(WorkItemStore));
+                destinationTFS = tpp.SelectedTeamProjectCollection;
+                destinationStore = (WorkItemStore)destinationTFS.GetService(typeof(WorkItemStore));
 
-                this.destinationProject = destinationStore.Projects[tpp.SelectedProjects[0].Name];
+                destinationProject = destinationStore.Projects[tpp.SelectedProjects[0].Name];
                 DestinationProjectText.Text = string.Format("{0}/{1}", destinationTFS.Uri.ToString(), destinationProject.Name);
                 writeTarget = new WorkItemWrite(destinationTFS, destinationProject);
 
@@ -120,7 +118,6 @@ namespace TFSProjectMigration
                 {
                     ConnectionStatusLabel.Content = "";
                 }
-
             }
         }
 
@@ -141,7 +138,6 @@ namespace TFSProjectMigration
                 IsNotIncludeRemoved = (bool)RemovedTextBox.IsChecked;
                 FieldCopyTab.IsEnabled = true;
                 FieldCopyTab.IsSelected = true;
-                
             }
         }
 
@@ -326,7 +322,6 @@ namespace TFSProjectMigration
                 }
                 FieldTypes2ComboBox.Items.Refresh();
             }
-
         }
 
 
@@ -398,14 +393,14 @@ namespace TFSProjectMigration
                         list.Remove(field);
                         i--;
                     }
-                } 
+                }
             }
             FieldToCopyGrid.Items.Refresh();
         }
 
         private void CopyWorkFlowsButton_Click(object sender, RoutedEventArgs e)
         {
-            string error = writeTarget.ReplaceWorkFlow(readSource.workItemTypes, migrateTypeSet); 
+            string error = writeTarget.ReplaceWorkFlow(readSource.workItemTypes, migrateTypeSet);
             if (error.Length > 0)
             {
                 System.Windows.MessageBox.Show(error, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
@@ -428,8 +423,8 @@ namespace TFSProjectMigration
         private void CheckTestPlanHyperLink_Click(object sender, RoutedEventArgs e)
         {
             TestPlanViewUI ts = new TestPlanViewUI();
-            ts.tfs = this.destinationTFS;
-            ts.targetProjectName = this.destinationProject.Name;
+            ts.tfs = destinationTFS;
+            ts.targetProjectName = destinationProject.Name;
             ts.printProjectName();
             ts.Show();
         }
@@ -438,6 +433,5 @@ namespace TFSProjectMigration
         {
             System.Diagnostics.Process.Start(@"Log\Log-File");
         }
-
     }
 }

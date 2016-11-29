@@ -15,14 +15,14 @@ namespace TFSProjectMigration
 {
     public class WorkItemWrite
     {
-        TfsTeamProjectCollection tfs;
+        private TfsTeamProjectCollection tfs;
         public WorkItemStore store;
         public QueryHierarchy queryCol;
-        Project destinationProject;
-        String projectName;
+        private Project destinationProject;
+        private String projectName;
         public XmlNode AreaNodes;
         public XmlNode IterationsNodes;
-        WorkItemTypeCollection workItemTypes;
+        private WorkItemTypeCollection workItemTypes;
         public Hashtable itemMap;
         public Hashtable itemMapCIC;
         private static readonly ILog logger = LogManager.GetLogger(typeof(TFSWorkItemMigrationUI));
@@ -75,7 +75,6 @@ namespace TFSProjectMigration
                         previousState = revision.Fields["State"].Value.ToString();
                         result.Enqueue(previousState);
                     }
-
                 }
 
                 int i = 1;
@@ -135,7 +134,7 @@ namespace TFSProjectMigration
                 workItem.Open();
                 workItem.Fields["State"].Value = destState;
                 workItem.Fields["Reason"].Value = reason;
- 
+
                 ArrayList list = workItem.Validate();
                 workItem.Save();
 
@@ -221,7 +220,7 @@ namespace TFSProjectMigration
                 ArrayList array = newWorkItem.Validate();
                 foreach (Field item in array)
                 {
-                        logger.Info(String.Format("Work item {0} Validation Error in field: {1}  : {2}", workItem.Id, item.Name, newWorkItem.Fields[item.Name].Value));
+                    logger.Info(String.Format("Work item {0} Validation Error in field: {1}  : {2}", workItem.Id, item.Name, newWorkItem.Fields[item.Name].Value));
                 }
                 //if work item is valid
                 if (array.Count == 0)
@@ -238,7 +237,7 @@ namespace TFSProjectMigration
                     logger.ErrorFormat("Work item {0} could not be saved", workItem.Id);
                 }
 
-                ProgressBar.Dispatcher.BeginInvoke(new Action(delegate()
+                ProgressBar.Dispatcher.BeginInvoke(new Action(delegate ()
                 {
                     float progress = (float)i / (float)workItemCollection.Count;
                     ProgressBar.Value = ((float)i / (float)workItemCollection.Count) * 100;
@@ -257,10 +256,13 @@ namespace TFSProjectMigration
             {
                 foreach (object[] item in map)
                 {
-                    try {
-	                    table.Add((string)item[0], (string)item[1]);
-                    } catch (Exception ex) {
-                    	logger.Error("Error in ListToTable", ex);
+                    try
+                    {
+                        table.Add((string)item[0], (string)item[1]);
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.Error("Error in ListToTable", ex);
                     }
                 }
             }
@@ -309,15 +311,14 @@ namespace TFSProjectMigration
                         try
                         {
                             WorkItem targetItem = sourceStore.GetWorkItem(link.TargetId);
-                            if (itemMap.ContainsKey(link.TargetId)  && targetItem != null)
+                            if (itemMap.ContainsKey(link.TargetId) && targetItem != null)
                             {
-
                                 int targetWorkItemID = 0;
                                 if (itemMap.ContainsKey(link.TargetId))
                                 {
                                     targetWorkItemID = (int)itemMap[link.TargetId];
                                 }
-                                
+
                                 //if the link is not already created(check if target id is not in list)
                                 if (!linkedWorkItemList.Contains(link.TargetId))
                                 {
@@ -341,7 +342,6 @@ namespace TFSProjectMigration
                                         logger.ErrorFormat("Error occured when crearting link for work item: {0} target item: {1}", workItem.Id, link.TargetId);
                                         logger.Error("Error detail", ex);
                                     }
-
                                 }
                             }
                             else
@@ -356,7 +356,6 @@ namespace TFSProjectMigration
                     }
                     //add the work item to list if the links are processed
                     linkedWorkItemList.Add(workItem.Id);
-
                 }
             }
         }
@@ -441,7 +440,7 @@ namespace TFSProjectMigration
                     if (finishDate != null && DateTime.TryParse(finishDate.Value, out finishDateParsed))
                         finishDateToUpdate = finishDateParsed;
                 }
-                if(startDateToUpdate.HasValue || finishDateToUpdate.HasValue)
+                if (startDateToUpdate.HasValue || finishDateToUpdate.HasValue)
                     css.SetIterationDates(createdNode.Uri, startDateToUpdate, finishDateToUpdate);
                 if (createdNode != null && node.HasChildNodes)
                 {
@@ -450,7 +449,6 @@ namespace TFSProjectMigration
                         CreateIterationNodes(subChildNode, css, createdNode);
                     }
                 }
-
             }
         }
 
@@ -540,7 +538,6 @@ namespace TFSProjectMigration
                     file.WriteLine(item.Key + "\t | \t" + item.Value);
                 }
             }
-
         }
 
 
@@ -560,7 +557,6 @@ namespace TFSProjectMigration
             {
                 System.Diagnostics.Debug.WriteLine(error.Exception.Message);
             }
-
         }
 
         /* Compare work item type definitions and add fields from source work item types and replace workflow */
@@ -596,9 +592,7 @@ namespace TFSProjectMigration
                 {
                     logger.Info("XML import falied for " + workItemTypeSource.Name);
                 }
-
             }
-
         }
 
         /* Add field definitions from Source xml to target xml */
@@ -699,7 +693,6 @@ namespace TFSProjectMigration
                         logger.Error("Error Replacing work flow");
                         error = error + "Error Replacing work flow for " + (string)list[0] + ":" + ex.Message + "\n";
                     }
-
                 }
             }
             return error;
@@ -753,7 +746,6 @@ namespace TFSProjectMigration
 
                     QueryFolder test = (QueryFolder)store.Projects[projectName].QueryHierarchy["Shared Queries"];
                 }
-
             }
         }
 
@@ -777,7 +769,6 @@ namespace TFSProjectMigration
                         {
                             logger.WarnFormat("Query Folder {0} already exists", subQuery);
                         }
-
                     }
                     else
                     {
@@ -803,14 +794,11 @@ namespace TFSProjectMigration
                     logger.ErrorFormat("Error creating Query: {0} : {1}", subQuery, ex.Message);
                     continue;
                 }
-
             }
-
         }
 
         public Hashtable MapFields(WorkItemTypeCollection workItemTypesSource)
         {
-
             Hashtable fieldMap = new Hashtable();
 
             foreach (WorkItemType workItemTypeSource in workItemTypesSource)
@@ -826,7 +814,7 @@ namespace TFSProjectMigration
                 }
                 else if (workItemTypeSource.Name == "User Story")
                 {
-                     workItemTypeTarget = workItemTypes["Product Backlog Item"];
+                    workItemTypeTarget = workItemTypes["Product Backlog Item"];
                 }
                 else if (workItemTypeSource.Name == "Issue")
                 {
@@ -872,7 +860,5 @@ namespace TFSProjectMigration
             }
             return fieldMap;
         }
-
-
     }
 }

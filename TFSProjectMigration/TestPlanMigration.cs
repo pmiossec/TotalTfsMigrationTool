@@ -16,17 +16,17 @@ namespace TFSProjectMigration
 {
     public class TestPlanMigration
     {
-        ITestManagementTeamProject sourceproj;
-        ITestManagementTeamProject destinationproj;
+        private ITestManagementTeamProject sourceproj;
+        private ITestManagementTeamProject destinationproj;
         public Hashtable workItemMap;
-        ProgressBar progressBar;
-        String projectName;
+        private ProgressBar progressBar;
+        private String projectName;
         private static readonly ILog logger = LogManager.GetLogger(typeof(TFSWorkItemMigrationUI));
 
         public TestPlanMigration(TfsTeamProjectCollection sourceTfs, TfsTeamProjectCollection destinationTfs, string sourceProject, string destinationProject, Hashtable workItemMap, ProgressBar progressBar)
         {
-            this.sourceproj = GetProject(sourceTfs, sourceProject);
-            this.destinationproj = GetProject(destinationTfs, destinationProject);
+            sourceproj = GetProject(sourceTfs, sourceProject);
+            destinationproj = GetProject(destinationTfs, destinationProject);
             this.workItemMap = workItemMap;
             this.progressBar = progressBar;
             projectName = sourceProject;
@@ -34,7 +34,6 @@ namespace TFSProjectMigration
 
         private ITestManagementTeamProject GetProject(TfsTeamProjectCollection tfs, string project)
         {
-            
             ITestManagementService tms = tfs.GetService<ITestManagementService>();
 
             return tms.GetTeamProject(project);
@@ -42,7 +41,7 @@ namespace TFSProjectMigration
         public void CopyTestPlans()
         {
             int i = 1;
-            int planCount= sourceproj.TestPlans.Query("Select * From TestPlan").Count;
+            int planCount = sourceproj.TestPlans.Query("Select * From TestPlan").Count;
             //delete Test Plans if any existing test plans.
             //foreach (ITestPlan destinationplan in destinationproj.TestPlans.Query("Select * From TestPlan"))
             //{
@@ -52,7 +51,7 @@ namespace TFSProjectMigration
             //    destinationplan.Delete(DeleteAction.ForceDeletion); ;
 
             //}
-           
+
             foreach (ITestPlan sourceplan in sourceproj.TestPlans.Query("Select * From TestPlan"))
             {
                 System.Diagnostics.Debug.WriteLine("Plan - {0} : {1}", sourceplan.Id, sourceplan.Name);
@@ -63,7 +62,7 @@ namespace TFSProjectMigration
                 destinationplan.Description = sourceplan.Description;
                 destinationplan.StartDate = sourceplan.StartDate;
                 destinationplan.EndDate = sourceplan.EndDate;
-                destinationplan.State = sourceplan.State;            
+                destinationplan.State = sourceplan.State;
                 destinationplan.Save();
 
                 //drill down to root test suites.
@@ -74,15 +73,14 @@ namespace TFSProjectMigration
 
                 destinationplan.Save();
 
-                progressBar.Dispatcher.BeginInvoke(new Action(delegate()
+                progressBar.Dispatcher.BeginInvoke(new Action(delegate ()
                 {
-                    float progress = (float)i / (float) planCount;
+                    float progress = (float)i / (float)planCount;
 
-                    progressBar.Value = ((float)i / (float) planCount) * 100;
+                    progressBar.Value = ((float)i / (float)planCount) * 100;
                 }));
                 i++;
             }
-
         }
 
         //Copy all Test suites from source plan to destination plan.
@@ -106,7 +104,6 @@ namespace TFSProjectMigration
                         CopySubTestSuites(suite, newSuite);
                 }
             }
-
         }
         //Drill down and Copy all subTest suites from source root test suite to destination plan's root test suites.
         private void CopySubTestSuites(IStaticTestSuite parentsourceSuite, IStaticTestSuite parentdestinationSuite)
@@ -125,17 +122,13 @@ namespace TFSProjectMigration
 
                     if (suite.Entries.Count > 0)
                         CopySubTestSuites(suite, subSuite);
-
                 }
             }
-
-
         }
 
         //Copy all subTest suites from source root test suite to destination plan's root test suites.
         private void CopyTestCases(IStaticTestSuite sourcesuite, IStaticTestSuite destinationsuite)
         {
-
             ITestSuiteEntryCollection suiteentrys = sourcesuite.TestCases;
 
             foreach (ITestSuiteEntry testcase in suiteentrys)
@@ -158,7 +151,6 @@ namespace TFSProjectMigration
                         var sharedStepRef = item as ISharedStepReference;
                         if (sharedStepRef != null)
                         {
-
                             int newSharedStepId = (int)workItemMap[sharedStepRef.SharedStepId];
                             //GetNewSharedStepId(testCase.Id, sharedStepRef.SharedStepId);
                             if (0 != newSharedStepId)
@@ -166,7 +158,6 @@ namespace TFSProjectMigration
                                 sharedStepRef.SharedStepId = newSharedStepId;
                                 updateTestCase = true;
                             }
-
                         }
                     }
                     if (updateTestCase)
@@ -182,9 +173,5 @@ namespace TFSProjectMigration
                 }
             }
         }
-
     }
-
-
-    
 }

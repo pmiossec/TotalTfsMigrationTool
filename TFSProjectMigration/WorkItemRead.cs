@@ -11,11 +11,10 @@ namespace TFSProjectMigration
 {
     public class WorkItemRead
     {
-
-        TfsTeamProjectCollection tfs;
+        private TfsTeamProjectCollection tfs;
         public WorkItemStore store;
         public QueryHierarchy queryCol;
-        String projectName;
+        private String projectName;
         public WorkItemTypeCollection workItemTypes;
         private static readonly ILog logger = LogManager.GetLogger(typeof(TFSWorkItemMigrationUI));
 
@@ -110,17 +109,15 @@ namespace TFSProjectMigration
                             {
                                 webClient.DownloadFile(att.Uri, path + "\\" + att.Name);
                             }
-                            else 
+                            else
                             {
                                 webClient.DownloadFile(att.Uri, path + "\\" + att.Id + "_" + att.Name);
                             }
-                           
                         }
                         catch (Exception)
                         {
                             logger.Info("Error downloading attachment for work item : " + wi.Id + " Type: " + wi.Type.Name);
                         }
-
                     }
                 }
             }
@@ -130,7 +127,6 @@ namespace TFSProjectMigration
         /*Delete all subfolders and files in given folder*/
         private void EmptyFolder(DirectoryInfo directoryInfo)
         {
-
             foreach (FileInfo file in directoryInfo.GetFiles())
             {
                 file.Delete();
@@ -140,7 +136,6 @@ namespace TFSProjectMigration
                 EmptyFolder(subfolder);
                 subfolder.Delete();
             }
-
         }
 
         /* Return Areas and Iterations of the project */
@@ -159,7 +154,5 @@ namespace TFSProjectMigration
 
             return new XmlNode[] { areaNodes, iterationsNodes };
         }
-
-
     }
 }
