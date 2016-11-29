@@ -111,7 +111,7 @@ namespace TFSProjectMigration
 
                 this.destinationTFS = tpp.SelectedTeamProjectCollection;
                 this.destinationStore = (WorkItemStore)destinationTFS.GetService(typeof(WorkItemStore));
-
+                //this.destinationStore = new WorkItemStore(destinationTFS, WorkItemStoreFlags.BypassRules);
                 this.destinationProject = destinationStore.Projects[tpp.SelectedProjects[0].Name];
                 DestinationProjectText.Text = string.Format("{0}/{1}", destinationTFS.Uri.ToString(), destinationProject.Name);
                 writeTarget = new WorkItemWrite(destinationTFS, destinationProject);
@@ -166,7 +166,7 @@ namespace TFSProjectMigration
             {
                 StatusBar.Visibility = Visibility.Visible;
             }));
-            WorkItemCollection source = readSource.GetWorkItems(sourceProject.Name, IsNotIncludeClosed, IsNotIncludeRemoved); //Get Workitems from source tfs 
+            WorkItemCollection source = readSource.GetWorkItems(sourceProject.Name, IsNotIncludeClosed, IsNotIncludeRemoved, StatusBar); //Get Workitems from source tfs 
             XmlNode[] iterations = readSource.PopulateIterations(); //Get Iterations and Areas from source tfs 
 
             StatusViwer.Dispatcher.BeginInvoke(new Action(delegate()
@@ -191,6 +191,7 @@ namespace TFSProjectMigration
             {
                 StatusViwer.Content = StatusViwer.Content + "\nCopying Work Items...";
             }));
+            
             writeTarget.writeWorkItems(sourceStore, source, sourceProject.Name, StatusBar, finalFieldMap); //Copy Workitems
 
             StatusViwer.Dispatcher.BeginInvoke(new Action(delegate()

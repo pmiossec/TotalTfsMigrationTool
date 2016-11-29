@@ -1,7 +1,7 @@
 ﻿using System;
+using System.Linq;
 using System.Collections.Generic;
 using System.Collections;
-using System.Linq;
 using Microsoft.TeamFoundation.Server;
 using Microsoft.TeamFoundation.Client;
 using Microsoft.TeamFoundation.WorkItemTracking.Client;
@@ -32,7 +32,8 @@ namespace TFSProjectMigration
             this.tfs = tfs;
             projectName = destinationProject.Name;
             this.destinationProject = destinationProject;
-            store = (WorkItemStore)tfs.GetService(typeof(WorkItemStore));
+            //store = (WorkItemStore)tfs.GetService(typeof(WorkItemStore));
+            store = new WorkItemStore(tfs, WorkItemStoreFlags.BypassRules);
             queryCol = store.Projects[destinationProject.Name].QueryHierarchy;
             workItemTypes = store.Projects[destinationProject.Name].WorkItemTypes;
             itemMap = new Hashtable();
@@ -135,7 +136,7 @@ namespace TFSProjectMigration
                 workItem.Open();
                 workItem.Fields["State"].Value = destState;
                 workItem.Fields["Reason"].Value = reason;
- 
+
                 ArrayList list = workItem.Validate();
                 workItem.Save();
 
@@ -221,13 +222,14 @@ namespace TFSProjectMigration
                 ArrayList array = newWorkItem.Validate();
                 foreach (Field item in array)
                 {
-                        logger.Info(String.Format("Work item {0} Validation Error in field: {1}  : {2}", workItem.Id, item.Name, newWorkItem.Fields[item.Name].Value));
+                    logger.Info(String.Format("Work item {0} Validation Error in field: {1}  : {2}", workItem.Id, item.Name, newWorkItem.Fields[item.Name].Value));
                 }
                 //if work item is valid
                 if (array.Count == 0)
                 {
                     UploadAttachments(newWorkItem, workItem);
                     newWorkItem.Save();
+
                     itemMap.Add(workItem.Id, newWorkItem.Id);
                     newItems.Add(workItem);
                     //update workitem status
@@ -238,7 +240,7 @@ namespace TFSProjectMigration
                     logger.ErrorFormat("Work item {0} could not be saved", workItem.Id);
                 }
 
-                ProgressBar.Dispatcher.BeginInvoke(new Action(delegate()
+                ProgressBar.Dispatcher.BeginInvoke(new Action(delegate ()
                 {
                     float progress = (float)i / (float)workItemCollection.Count;
                     ProgressBar.Value = ((float)i / (float)workItemCollection.Count) * 100;
@@ -247,8 +249,11 @@ namespace TFSProjectMigration
             }
 
             WriteMaptoFile(sourceProjectName);
-            CreateLinks(newItems, sourceStore);
+            CreateLinks(newItems, sourceStore, ProgressBar);
+            
+            CreateExternalLinks(newItems, sourceStore, ProgressBar);
         }
+
 
         private Hashtable ListToTable(List<object> map)
         {
@@ -257,10 +262,13 @@ namespace TFSProjectMigration
             {
                 foreach (object[] item in map)
                 {
-                    try {
-	                    table.Add((string)item[0], (string)item[1]);
-                    } catch (Exception ex) {
-                    	logger.Error("Error in ListToTable", ex);
+                    try
+                    {
+                        table.Add((string)item[0], (string)item[1]);
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.Error("Error in ListToTable", ex);
                     }
                 }
             }
@@ -292,10 +300,11 @@ namespace TFSProjectMigration
         }
 
         /* Set links between workitems */
-        private void CreateLinks(List<WorkItem> workItemCollection, WorkItemStore sourceStore)
+        private void CreateLinks(List<WorkItem> workItemCollection, WorkItemStore sourceStore, ProgressBar ProgressBar)
         {
             List<int> linkedWorkItemList = new List<int>();
             WorkItemCollection targetWorkItemCollection = GetWorkItemCollection();
+            int index = 0;
             foreach (WorkItem workItem in workItemCollection)
             {
                 WorkItemLinkCollection links = workItem.WorkItemLinks;
@@ -309,7 +318,7 @@ namespace TFSProjectMigration
                         try
                         {
                             WorkItem targetItem = sourceStore.GetWorkItem(link.TargetId);
-                            if (itemMap.ContainsKey(link.TargetId)  && targetItem != null)
+                            if (itemMap.ContainsKey(link.TargetId) && targetItem != null)
                             {
 
                                 int targetWorkItemID = 0;
@@ -317,7 +326,7 @@ namespace TFSProjectMigration
                                 {
                                     targetWorkItemID = (int)itemMap[link.TargetId];
                                 }
-                                
+
                                 //if the link is not already created(check if target id is not in list)
                                 if (!linkedWorkItemList.Contains(link.TargetId))
                                 {
@@ -358,8 +367,102 @@ namespace TFSProjectMigration
                     linkedWorkItemList.Add(workItem.Id);
 
                 }
+                index++;
+                ProgressBar.Dispatcher.BeginInvoke(new Action(delegate ()
+                {
+                    float progress = (float)index / (float)workItemCollection.Count;
+                    ProgressBar.Value = ((float)index / (float)workItemCollection.Count) * 100;
+                }));
+
             }
         }
+
+        private void CreateExternalLinks(List<WorkItem> workItemCollection, WorkItemStore sourceStore, ProgressBar ProgressBar)
+        {
+            List<int> linkedWorkItemList = new List<int>();
+            WorkItemCollection targetWorkItemCollection = GetWorkItemCollection();
+
+            int index = 0;
+            foreach (WorkItem workItem in workItemCollection)
+            {
+                LinkCollection links = workItem.Links;
+                if (links.Count > 0)
+                {
+                    int newWorkItemID = (int)itemMap[workItem.Id];
+                    WorkItem newWorkItem = store.GetWorkItem(newWorkItemID);
+
+                    //for(int i=0;i<newWorkItem.Links.Count;i++)
+                    //{
+                    //    var link = newWorkItem.Links[i];
+                    //    if(link is ExternalLink)
+                    //    {
+                    //        newWorkItem.Links.Remove(link);
+                    //        i--;
+                    //    }
+                    //}
+                    var oldProjectName = string.Format("{0}%2F{1}", sourceStore.TeamProjectCollection.Name, workItem.Project.Name).Replace("tfs\\","");
+                    var newProjectName = string.Format("{0}%2F{1}", store.TeamProjectCollection.Name, newWorkItem.Project.Name).Replace("tfs\\", "");
+                    foreach (Link link in links)
+                    {
+                        try
+                        {
+
+                            var linkType = store.RegisteredLinkTypes[link.ArtifactLinkType.Name];
+
+                            if (link is ExternalLink)
+                            {
+                                //DON'T COPY CHANGESET LINKS
+                                var oldLink = link as ExternalLink;
+                                var uri = oldLink.LinkedArtifactUri;
+                                if(!uri.ToLower().Contains("changeset"))
+                                {
+                                    uri = uri.Replace(oldProjectName, newProjectName);
+                                    var newLink = new ExternalLink(linkType, uri);
+                                    newWorkItem.Links.Add(newLink);
+                                }
+                            }
+                            else if (link is Hyperlink)
+                            {
+                                var oldLink = link as Hyperlink;
+                                var uri = oldLink.Location;
+                                uri = uri.Replace(oldProjectName, newProjectName);
+                                var newLink = new Hyperlink(uri);
+                                newWorkItem.Links.Add(newLink);
+                            }
+                            //else if (link is RelatedLink)
+                            //{
+                            //    var oldLink = link as RelatedLink;
+                            //    var oldItemId = oldLink.RelatedWorkItemId;
+                            //    if (itemMap.ContainsKey(oldItemId))
+                            //    {
+                            //        var linkTypeEnd = store.WorkItemLinkTypes.LinkTypeEnds[oldLink.LinkTypeEnd.Name];
+                            //        var newLink = new RelatedLink(linkTypeEnd, (int)itemMap[oldItemId]);
+                            //        newWorkItem.Links.Add(newLink);
+                            //    }
+                            //}
+
+                        }
+                        catch (Exception)
+                        {
+                            logger.Warn("Link is not created for work item: " + workItem.Id + " - target item: " + link.Comment + " is not in Source TFS or you do not have permission to access");
+                        }
+                    }
+                    if (newWorkItem.IsDirty)
+                    {
+                        newWorkItem.Save();
+                    }
+                }
+
+                index++;
+                ProgressBar.Dispatcher.BeginInvoke(new Action(delegate ()
+                {
+                    float progress = (float)index / (float)workItemCollection.Count;
+                    ProgressBar.Value = ((float)index / (float)workItemCollection.Count) * 100;
+                }));
+
+            }
+        }
+
 
         /* Upload attachments to workitems from local folder */
         private void UploadAttachments(WorkItem workItem, WorkItem workItemOld)
@@ -441,7 +544,7 @@ namespace TFSProjectMigration
                     if (finishDate != null && DateTime.TryParse(finishDate.Value, out finishDateParsed))
                         finishDateToUpdate = finishDateParsed;
                 }
-                if(startDateToUpdate.HasValue || finishDateToUpdate.HasValue)
+                if (startDateToUpdate.HasValue || finishDateToUpdate.HasValue)
                     css.SetIterationDates(createdNode.Uri, startDateToUpdate, finishDateToUpdate);
                 if (createdNode != null && node.HasChildNodes)
                 {
@@ -826,7 +929,7 @@ namespace TFSProjectMigration
                 }
                 else if (workItemTypeSource.Name == "User Story")
                 {
-                     workItemTypeTarget = workItemTypes["Product Backlog Item"];
+                    workItemTypeTarget = workItemTypes["Product Backlog Item"];
                 }
                 else if (workItemTypeSource.Name == "Issue")
                 {
