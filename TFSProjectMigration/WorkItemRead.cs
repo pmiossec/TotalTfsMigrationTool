@@ -16,7 +16,7 @@ namespace TFSProjectMigration
         public QueryHierarchy queryCol;
         private String projectName;
         public WorkItemTypeCollection workItemTypes;
-        private static readonly ILog logger = LogManager.GetLogger(typeof(TFSWorkItemMigrationUI));
+        private static readonly ILog logger = LogManager.GetLogger(typeof(TfsWorkItemMigrationUi));
 
         public WorkItemRead(TfsTeamProjectCollection tfs, Project sourceProject)
         {
