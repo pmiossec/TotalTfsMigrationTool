@@ -130,8 +130,8 @@ namespace TFSProjectMigration
                 _isNotIncludeRemoved = RemovedTextBox.IsChecked.GetValueOrDefault();
                 _areVersionHistoryCommentsIncluded = VersionHistoryCheckBox.IsChecked.GetValueOrDefault();
                 _shouldWorkItemsBeLinkedToGitCommits = LinkToCommitsCheckBox.IsChecked.GetValueOrDefault();
-                FieldCopyTab.IsEnabled = true;
-                FieldCopyTab.IsSelected = true;
+                ItemMappingTab.IsEnabled = true;
+                ItemMappingTab.IsSelected = true;
             }
         }
 
@@ -223,15 +223,19 @@ namespace TFSProjectMigration
 
         private void MigrationTabControl_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (FieldMappingTab.IsSelected && (e.OriginalSource is TabControl))
+            if (FieldMappingTab.IsSelected && e.OriginalSource is TabControl)
             {
                 SetFieldTypeList(_fieldMap.Keys);
             }
-            else if (FieldCopyTab.IsSelected && (e.OriginalSource is TabControl))
+            else if (FieldCopyTab.IsSelected && e.OriginalSource is TabControl)
             {
                 SetListsCopyFieldsTab(_fieldMap.Keys);
                 WorkFlowListGrid.ItemsSource = _migrateTypeSet;
                 WorkFlowListGrid.Items.Refresh();
+            }
+            else if (ItemMappingTab.IsSelected && e.OriginalSource is TabControl)
+            {
+                // TODO: Load items
             }
         }
 
@@ -400,18 +404,6 @@ namespace TFSProjectMigration
                 MessageBox.Show(error, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
             WorkFlowListGrid.Items.Refresh();
-            //for (int i = 0; i < migrateTypeSet.Count; i++)
-            //{
-            //    object[] field = (object[])migrateTypeSet[i];
-            //    if ((bool)field[1])
-            //    {
-            //        ItemCollection items = (ItemCollection)WorkFlowListGrid.Items.GetItemAt(i);
-            //        foreach (ItemsControl item in items)
-            //        {
-            //            item.IsEnabled = false;
-            //        }
-            //    }
-            //} 
         }
 
         private void CheckTestPlanHyperLink_Click(object sender, RoutedEventArgs e)
@@ -426,6 +418,17 @@ namespace TFSProjectMigration
         private void CheckLog_Click(object sender, RoutedEventArgs e)
         {
             Process.Start(@"Log\Log-File");
+        }
+
+        private void MapItemsButton_Click(object sender, RoutedEventArgs e)
+        {
+            throw new NotImplementedException();
+        }
+
+        private void NextButtonItemMapping_Click(object sender, RoutedEventArgs e)
+        {
+            FieldCopyTab.IsEnabled = true;
+            FieldCopyTab.IsSelected = true;
         }
     }
 }

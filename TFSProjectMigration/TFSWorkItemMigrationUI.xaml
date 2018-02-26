@@ -68,6 +68,55 @@
 
                 </Grid>
             </TabItem>
+            <TabItem x:Name="ItemMappingTab" Header="Item Mapping" MinHeight="100" Margin="-2,-3,0,3" FontStretch="UltraExpanded" IsEnabled="False" BorderBrush="#FFABD3FD" Foreground="#FF23578D">
+                <TabItem.Background>
+                    <LinearGradientBrush EndPoint="0,1" StartPoint="0,0">
+                        <GradientStop Color="#FFAED3F9" Offset="0"/>
+                        <GradientStop Color="#FF729FCF" Offset="1"/>
+                        <GradientStop Color="#FF6E9CCD" Offset="1"/>
+                        <GradientStop Color="#FF7EBCFB" Offset="1"/>
+                        <GradientStop Color="#FFADD2F8" Offset="0.007"/>
+                        <GradientStop Color="#FF8BB5E0" Offset="0.65"/>
+                        <GradientStop Color="#FFBBDCFD" Offset="0.215"/>
+                    </LinearGradientBrush>
+                </TabItem.Background>
+                <Grid Background="White">
+                    <GroupBox Header="Map Work Items" HorizontalAlignment="Left" Height="223" Margin="32,13,0,0" VerticalAlignment="Top" Width="477" BorderBrush="#FFDADADA">
+                        <WrapPanel HorizontalAlignment="Left" Height="192" Margin="0,10,0,-1" VerticalAlignment="Top" Width="458">
+                            <ComboBox x:Name="SourceItemComboBox" Height="26" Width="154"/>
+                            <Label Content="  To" Height="25" Width="41"/>
+                            <ComboBox x:Name="DestItemComboBox" Height="26" Width="154"/>
+                            <Label Content="" Height="24" Width="37"/>
+                            <Button x:Name="MapItemsButton" Content="Map" Height="25" Width="72" Click="MapItemsButton_Click"/>
+                            <Label Content="  " Height="10" Width="456"/>
+                            <DataGrid x:Name="MappedItemListGrid" Height="126" Width="458" AutoGenerateColumns="False" AlternatingRowBackground="#FFD9EFF7" Background="WhiteSmoke" GridLinesVisibility="Vertical" VerticalGridLinesBrush="#FFE4E4E4">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Width="190" Header="Source Item" Binding="{Binding [0]}" IsReadOnly="True" />
+                                    <DataGridTextColumn Width="190" Header="Target Item"  Binding="{Binding [1]}" IsReadOnly="True"/>
+                                    <DataGridTemplateColumn Width="Auto" MinWidth="70">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <CheckBox IsChecked="{Binding [2], Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" HorizontalAlignment="Center"/>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                            <Label Content="" Height="27" Width="382"/>
+                        </WrapPanel>
+                    </GroupBox>
+                    <Button x:Name="NextButtonItemMapping" Content="Next" HorizontalAlignment="Left" VerticalAlignment="Top" Width="97" Margin="412,502,0,0" Height="29" Click="NextButtonItemMapping_Click">
+                        <Button.Background>
+                            <LinearGradientBrush EndPoint="0,1" StartPoint="0,0">
+                                <GradientStop Color="#FFF3F3F3" Offset="0"/>
+                                <GradientStop Color="#FFEBEBEB" Offset="0.5"/>
+                                <GradientStop Color="#FFDDDDDD" Offset="0.5"/>
+                                <GradientStop Color="{DynamicResource {x:Static SystemColors.ActiveBorderColorKey}}" Offset="1"/>
+                            </LinearGradientBrush>
+                        </Button.Background>
+                    </Button>
+                </Grid>
+            </TabItem>
             <TabItem x:Name="FieldCopyTab" Header="Field Copying" MinHeight="100" Margin="-2,-3,0,3" FontStretch="UltraExpanded" IsEnabled="False" BorderBrush="#FFABD3FD" Foreground="#FF23578D">
                 <TabItem.Background>
                     <LinearGradientBrush EndPoint="0,1" StartPoint="0,0">
