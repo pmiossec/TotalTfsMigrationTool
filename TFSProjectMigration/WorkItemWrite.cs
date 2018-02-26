@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Windows.Controls;
 using System.Xml;
+using System.Xml.Schema;
 using log4net;
 using Microsoft.TeamFoundation.Client;
 using Microsoft.TeamFoundation.Server;
@@ -165,25 +166,13 @@ namespace TFSProjectMigration
                     continue;
                 }
 
-                WorkItem newWorkItem;
                 Hashtable fieldMap = ListToTable((List<object>)fieldMapAll[workItem.Type.Name]);
-                if (_workItemTypes.Contains(workItem.Type.Name))
-                {
-                    newWorkItem = new WorkItem(_workItemTypes[workItem.Type.Name]);
-                }
-                else if (workItem.Type.Name == "User Story")
-                {
-                    newWorkItem = new WorkItem(_workItemTypes["Product Backlog Item"]);
-                }
-                else if (workItem.Type.Name == "Issue")
-                {
-                    newWorkItem = new WorkItem(_workItemTypes["Impediment"]);
-                }
-                else
-                {
-                    Logger.InfoFormat("Work Item Type {0} does not exist in target TFS", workItem.Type.Name);
+
+                WorkItemType workItemTypeTarget = getTargetWorkItemTypeFromSourceWorkItemType(workItem.Type);
+                if (workItemTypeTarget == null)
                     continue;
-                }
+
+                WorkItem newWorkItem = new WorkItem(workItemTypeTarget);
 
                 /* assign relevent fields*/
                 foreach (Field field in workItem.Fields)
@@ -649,19 +638,7 @@ namespace TFSProjectMigration
         {
             foreach (WorkItemType workItemTypeSource in workItemTypesSource)
             {
-                WorkItemType workItemTypeTarget;
-                if (workItemTypeSource.Name == "User Story")
-                {
-                    workItemTypeTarget = _workItemTypes["Product Backlog Item"];
-                }
-                else if (workItemTypeSource.Name == "Issue")
-                {
-                    workItemTypeTarget = _workItemTypes["Impediment"];
-                }
-                else
-                {
-                    workItemTypeTarget = _workItemTypes[workItemTypeSource.Name];
-                }
+                WorkItemType workItemTypeTarget = getTargetWorkItemTypeFromSourceWorkItemType(workItemTypeSource);
 
                 XmlDocument workItemTypeXmlSource = workItemTypeSource.Export(false);
                 XmlDocument workItemTypeXmlTarget = workItemTypeTarget.Export(false);
@@ -672,6 +649,10 @@ namespace TFSProjectMigration
                 {
                     WorkItemType.Validate(Store.Projects[_projectName], workItemTypeXmlTarget.InnerXml);
                     Store.Projects[_projectName].WorkItemTypes.Import(workItemTypeXmlTarget.InnerXml);
+                }
+                catch (XmlSchemaValidationException)
+                {
+                    Logger.Info("XML import falied for " + workItemTypeSource.Name);
                 }
                 catch (XmlException)
                 {
@@ -839,6 +820,45 @@ namespace TFSProjectMigration
             }
         }
 
+        public void CreateDefaultItemMapping(WorkItemTypeCollection workItemTypesSource)
+        {
+            var typeMappingAgileToScrum = new Dictionary<string, string>() 
+            {
+                { "Product Backlog Item", "User Story"},
+                { "Impediment", "Issue"},
+                { "Issue", "Impediment"},
+                { "User Story", "Product Backlog Item"}
+            };
+
+            foreach (WorkItemType workItemTypeSource in workItemTypesSource)
+            {
+                if (_workItemTypes.Contains(workItemTypeSource.Name))
+                {
+                    WorkItemTypeMap.Add(workItemTypeSource.Name, workItemTypeSource.Name);
+                }
+                else if (typeMappingAgileToScrum.ContainsKey(workItemTypeSource.Name))
+                {
+                    WorkItemTypeMap.Add(workItemTypeSource.Name, typeMappingAgileToScrum[workItemTypeSource.Name]);
+                }
+                else
+                {
+                    WorkItemTypeMap.Add(workItemTypeSource.Name, "Undefined");
+                }
+            }
+        }
+
+        public Dictionary<string, string> WorkItemTypeMap { get; } = new Dictionary<string, string>();
+
+        private WorkItemType getTargetWorkItemTypeFromSourceWorkItemType(WorkItemType sourceWorkItemType)
+        {
+            if (!WorkItemTypeMap.ContainsKey(sourceWorkItemType.Name))
+                return null;
+
+            if (!_workItemTypes.Contains(WorkItemTypeMap[sourceWorkItemType.Name]))
+                return null;
+
+            return _workItemTypes[WorkItemTypeMap[sourceWorkItemType.Name]];
+        }
         public Hashtable MapFields(WorkItemTypeCollection workItemTypesSource)
         {
             Hashtable fieldMap = new Hashtable();
@@ -849,23 +869,9 @@ namespace TFSProjectMigration
                 List<string> sourceList = new List<string>();
                 List<string> targetList = new List<string>();
 
-                WorkItemType workItemTypeTarget;
-                if (_workItemTypes.Contains(workItemTypeSource.Name))
-                {
-                    workItemTypeTarget = _workItemTypes[workItemTypeSource.Name];
-                }
-                else if (workItemTypeSource.Name == "User Story")
-                {
-                    workItemTypeTarget = _workItemTypes["Product Backlog Item"];
-                }
-                else if (workItemTypeSource.Name == "Issue")
-                {
-                    workItemTypeTarget = _workItemTypes["Impediment"];
-                }
-                else
-                {
+                WorkItemType workItemTypeTarget = getTargetWorkItemTypeFromSourceWorkItemType(workItemTypeSource);
+                if (workItemTypeTarget == null)
                     continue;
-                }
 
                 XmlDocument workItemTypeXmlSource = workItemTypeSource.Export(false);
                 XmlDocument workItemTypeXmlTarget = workItemTypeTarget.Export(false);

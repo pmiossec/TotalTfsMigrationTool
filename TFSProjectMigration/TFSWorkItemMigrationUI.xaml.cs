@@ -125,6 +125,7 @@ namespace TFSProjectMigration
             }
             else
             {
+                _writeTarget.CreateDefaultItemMapping(_readSource.WorkItemTypes);
                 _fieldMap = _writeTarget.MapFields(_readSource.WorkItemTypes);
                 _isNotIncludeClosed = ClosedTextBox.IsChecked.GetValueOrDefault();
                 _isNotIncludeRemoved = RemovedTextBox.IsChecked.GetValueOrDefault();
