@@ -51,7 +51,7 @@ namespace TFSProjectMigration
         }
 
 
-        public void updateToLatestStatus(WorkItem oldWorkItem, WorkItem newWorkItem)
+        private static void updateToLatestStatus(WorkItem oldWorkItem, WorkItem newWorkItem)
         {
             Queue<string> result = new Queue<string>();
             string previousState = null;
@@ -106,7 +106,7 @@ namespace TFSProjectMigration
             }
         }
 
-        private bool ChangeWorkItemStatus(WorkItem workItem, string orginalSourceState, string destState)
+        private static bool ChangeWorkItemStatus(WorkItem workItem, string orginalSourceState, string destState)
         {
             //Try to save the new state.  If that fails then we also go back to the orginal state.
             try
@@ -127,7 +127,7 @@ namespace TFSProjectMigration
         }
 
         //save final state transition and set final reason.
-        private bool ChangeWorkItemStatus(WorkItem workItem, string orginalSourceState, string destState, string reason)
+        private static bool ChangeWorkItemStatus(WorkItem workItem, string orginalSourceState, string destState, string reason)
         {
             //Try to save the new state.  If that fails then we also go back to the orginal state.
             try
@@ -151,10 +151,10 @@ namespace TFSProjectMigration
             }
         }
 
-
         /* Copy work items to project from work item collection */
         public void writeWorkItems(WorkItemStore sourceStore, WorkItemCollection workItemCollection, string sourceProjectName, ProgressBar progressBar, Hashtable fieldMapAll, bool areVersionHistoryCommentsIncluded, bool shouldWorkItemsBeLinkedToGitCommits)
         {
+            var commentMigrator = new CommentMigrator(_tfs, _destinationProject, areVersionHistoryCommentsIncluded, shouldWorkItemsBeLinkedToGitCommits);
             ReadItemMap(sourceProjectName);
             int i = 1;
             List<WorkItem> newItems = new List<WorkItem>();
@@ -218,7 +218,6 @@ namespace TFSProjectMigration
                     }
                 }
 
-                // TODO: Commits
                 /* Validate Item Before Save*/
                 ArrayList array = newWorkItem.Validate();
                 foreach (Field item in array)
@@ -233,11 +232,7 @@ namespace TFSProjectMigration
                     newWorkItem.History = "Original Work Item ID: " + workItem.Id;
                     newWorkItem.Save();
 
-                    if (areVersionHistoryCommentsIncluded)
-                    {
-                        migrateComments(workItem, newWorkItem);
-                    }
-
+                    commentMigrator.MigrateComments(workItem, newWorkItem);
 
                     ItemMap.Add(workItem.Id, newWorkItem.Id);
                     newItems.Add(workItem);
@@ -262,64 +257,6 @@ namespace TFSProjectMigration
 
             CreateExternalLinks(newItems, sourceStore, progressBar);
         }
-
-        private static void migrateComments(WorkItem workItem, WorkItem newWorkItem)
-        {
-            const int maxHistoryLength = 1048576;
-
-            foreach (Revision revision in workItem.Revisions)
-            {
-                if (ShouldRevisionBeMigrated(revision))
-                {
-                    var history =
-                        $"{revision.Fields["History"].Value}<br><p><FONT color=#808080 size=1><EM>Changed date: {revision.Fields["Changed Date"].Value}</EM></FONT></p>";
-                    RemoveImagesIfHistoryIsTooLong(ref history);
-
-                    if (history.Length < maxHistoryLength)
-                    {
-                        newWorkItem.Fields["Changed By"].Value = revision.Fields["Changed By"].Value;
-                        newWorkItem.History = history;
-                        newWorkItem.Save();
-                    }
-                }
-            }
-
-            bool ShouldRevisionBeMigrated(Revision revision)
-            {
-                return !string.IsNullOrWhiteSpace(revision.Fields["History"].Value?.ToString()) &&
-                       revision.Fields["Changed By"].Value?.ToString() != "_SYSTFSBuild";
-            }
-
-            void RemoveImagesIfHistoryIsTooLong(ref string history)
-            {
-                int ImageStart(string s)
-                {
-                    return s.IndexOf("<img", StringComparison.Ordinal);
-                }
-
-                int ImageEnd(string s, int imageStart)
-                {
-                    return s.IndexOf(">", imageStart, StringComparison.Ordinal);
-                }
-
-                {
-                    var imageStart = ImageStart(history);
-
-                    while (history.Length >= maxHistoryLength && imageStart >= 0)
-                    {
-                        var imageEnd = ImageEnd(history, imageStart);
-                        if (imageEnd < 0)
-                            return;
-                        history = history.Remove(imageStart, imageEnd - imageStart);
-                        history = history.Insert(imageStart, "<p><FONT color=#808080 size=1><EM>(image removed)</EM></FONT></p>");
-                        imageStart = ImageStart(history);
-                    }
-                }
-            }
-
-
-        }
-
 
         private Hashtable ListToTable(List<object> map)
         {
@@ -965,5 +902,6 @@ namespace TFSProjectMigration
             }
             return fieldMap;
         }
+
     }
 }

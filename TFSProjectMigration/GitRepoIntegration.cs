@@ -9,34 +9,59 @@ namespace TFSProjectMigration
 {
     class GitRepoIntegration
     {
+        private readonly TfsTeamProjectCollection _tfs;
+        private readonly GitRepositoryService _git;
+        internal class CommitInfo
+        {
+            public Guid RepoId { get; set; }
+            public string CommitId { get; set; }
+            public string Comment { get; set; }
+        }
+
         public GitRepoIntegration(TfsTeamProjectCollection tfs)
         {
-            var git = new GitRepositoryService();
-            git.Initialize(tfs);
+            _tfs = tfs;
+            _git = new GitRepositoryService();
+            _git.Initialize(tfs);
+        }
 
-            foreach (var repo in git.QueryRepositories(string.Empty))
+        public IEnumerable<CommitInfo> GetCommits()
+        {
+            foreach (var repo in _git.QueryRepositories(string.Empty))
             {
-                Debug.WriteLine("Git Repo {0}, id {1}", repo.Name, repo.Id);
+                var gitClient = _tfs.GetClient<GitHttpClient>();
 
-                GitHttpClient gitClient = tfs.GetClient<GitHttpClient>();
+                var repoId = repo.Id;
 
-                Guid repoId = repo.Id; 
+                var criteria = new GitQueryCommitsCriteria();
 
-                // Get no more than 10 commits
-                GitQueryCommitsCriteria criteria = new GitQueryCommitsCriteria()
+                int skip = 0;
+                bool more;
+
+                do
                 {
-                    Top = 10
-                };
+                    var commitRefs = gitClient.GetCommitsAsync(repoId, criteria, skip).Result;
+                    skip += commitRefs.Count;
 
-                List<GitCommitRef> commits = gitClient.GetCommitsAsync(repoId, criteria).Result;
+                    foreach (var commitRef in commitRefs)
+                    {
+                        var comment = commitRef.CommentTruncated ? gitClient.GetCommitAsync(commitRef.CommitId, repoId).Result.Comment : commitRef.Comment;
 
-                foreach (GitCommitRef commit in commits)
-                {
-                    Debug.WriteLine("{0} by {1} ({2})", commit.CommitId, commit.Committer.Email, commit.Comment);
-                }
+                        yield return
+                            new CommitInfo
+                            {
+                                RepoId = repoId,
+                                CommitId = commitRef.CommitId,
+                                Comment = comment
+                            };
+                    }
 
+                    more = commitRefs.Count > 0;
+                } while (more);
 
             }
+
         }
+
     }
 }

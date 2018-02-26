@@ -79,7 +79,7 @@ namespace TFSProjectMigration
                 }
             }
         }
-
+        
         private void ConnectDestinationProjectButton_Click(object sender, RoutedEventArgs e)
         {
             TeamProjectPicker tpp = new TeamProjectPicker(TeamProjectPickerMode.SingleProject, false);
@@ -105,7 +105,7 @@ namespace TFSProjectMigration
                 _destinationProject = _destinationStore.Projects[tpp.SelectedProjects[0].Name];
                 DestinationProjectText.Text = string.Format("{0}/{1}", _destinationTfs.Uri, _destinationProject.Name);
                 _writeTarget = new WorkItemWrite(_destinationTfs, _destinationProject);
-                var gitRepoIntegration = new GitRepoIntegration(_destinationTfs);
+
                 if ((string)ConnectionStatusLabel.Content == "Select a Target project")
                 {
                     ConnectionStatusLabel.Content = "";
@@ -125,7 +125,7 @@ namespace TFSProjectMigration
             }
             else
             {
-                _fieldMap = _writeTarget.MapFields(_readSource.workItemTypes);
+                _fieldMap = _writeTarget.MapFields(_readSource.WorkItemTypes);
                 _isNotIncludeClosed = ClosedTextBox.IsChecked.GetValueOrDefault();
                 _isNotIncludeRemoved = RemovedTextBox.IsChecked.GetValueOrDefault();
                 _areVersionHistoryCommentsIncluded = VersionHistoryCheckBox.IsChecked.GetValueOrDefault();
@@ -175,7 +175,7 @@ namespace TFSProjectMigration
             {
                 StatusViwer.Content = StatusViwer.Content + "\nCopying Team Queries...";
             }));
-            _writeTarget.SetTeamQueries(_readSource.queryCol, _sourceProject.Name); //Copy Queries
+            _writeTarget.SetTeamQueries(_readSource.QueryCol, _sourceProject.Name); //Copy Queries
 
             StatusViwer.Dispatcher.BeginInvoke(new Action(delegate
             {
@@ -370,12 +370,12 @@ namespace TFSProjectMigration
         {
             FieldMappingTab.IsEnabled = true;
             FieldMappingTab.IsSelected = true;
-            _fieldMap = _writeTarget.MapFields(_readSource.workItemTypes);
+            _fieldMap = _writeTarget.MapFields(_readSource.WorkItemTypes);
         }
 
         private void CopyFieldsButton_Click(object sender, RoutedEventArgs e)
         {
-            _writeTarget.SetFieldDefinitions(_readSource.workItemTypes, _copyingFieldSet);
+            _writeTarget.SetFieldDefinitions(_readSource.WorkItemTypes, _copyingFieldSet);
             foreach (string key in _copyingFieldSet.Keys)
             {
                 List<object> list = (List<object>)_copyingFieldSet[key];
@@ -394,7 +394,7 @@ namespace TFSProjectMigration
 
         private void CopyWorkFlowsButton_Click(object sender, RoutedEventArgs e)
         {
-            string error = _writeTarget.ReplaceWorkFlow(_readSource.workItemTypes, _migrateTypeSet);
+            string error = _writeTarget.ReplaceWorkFlow(_readSource.WorkItemTypes, _migrateTypeSet);
             if (error.Length > 0)
             {
                 MessageBox.Show(error, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
