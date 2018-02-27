@@ -83,7 +83,7 @@
                 <Grid Background="White">
                     <GroupBox Header="Map Work Items" HorizontalAlignment="Left" Height="223" Margin="32,13,0,0" VerticalAlignment="Top" Width="477" BorderBrush="#FFDADADA">
                         <WrapPanel HorizontalAlignment="Left" Height="192" Margin="0,10,0,-1" VerticalAlignment="Top" Width="458">
-                            <ComboBox x:Name="SourceItemComboBox" Height="26" Width="154"/>
+                            <ComboBox x:Name="SourceItemComboBox" Height="26" Width="154" SelectionChanged="SourceItemComboBox_SelectionChanged"/>
                             <Label Content="  To" Height="25" Width="41"/>
                             <ComboBox x:Name="DestItemComboBox" Height="26" Width="154"/>
                             <Label Content="" Height="24" Width="37"/>
@@ -91,15 +91,8 @@
                             <Label Content="  " Height="10" Width="456"/>
                             <DataGrid x:Name="MappedItemListGrid" Height="126" Width="458" AutoGenerateColumns="False" AlternatingRowBackground="#FFD9EFF7" Background="WhiteSmoke" GridLinesVisibility="Vertical" VerticalGridLinesBrush="#FFE4E4E4">
                                 <DataGrid.Columns>
-                                    <DataGridTextColumn Width="190" Header="Source Item" Binding="{Binding [0]}" IsReadOnly="True" />
-                                    <DataGridTextColumn Width="190" Header="Target Item"  Binding="{Binding [1]}" IsReadOnly="True"/>
-                                    <DataGridTemplateColumn Width="Auto" MinWidth="70">
-                                        <DataGridTemplateColumn.CellTemplate>
-                                            <DataTemplate>
-                                                <CheckBox IsChecked="{Binding [2], Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" HorizontalAlignment="Center"/>
-                                            </DataTemplate>
-                                        </DataGridTemplateColumn.CellTemplate>
-                                    </DataGridTemplateColumn>
+                                    <DataGridTextColumn Width="190" Header="Source Item" Binding="{Binding Key}" IsReadOnly="True" />
+                                    <DataGridTextColumn Width="190" Header="Target Item"  Binding="{Binding Value}" IsReadOnly="True"/>
                                 </DataGrid.Columns>
                             </DataGrid>
                             <Label Content="" Height="27" Width="382"/>

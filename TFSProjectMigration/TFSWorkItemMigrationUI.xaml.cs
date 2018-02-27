@@ -126,7 +126,6 @@ namespace TFSProjectMigration
             else
             {
                 _writeTarget.CreateDefaultItemMapping(_readSource.WorkItemTypes);
-                _fieldMap = _writeTarget.MapFields(_readSource.WorkItemTypes);
                 _isNotIncludeClosed = ClosedTextBox.IsChecked.GetValueOrDefault();
                 _isNotIncludeRemoved = RemovedTextBox.IsChecked.GetValueOrDefault();
                 _areVersionHistoryCommentsIncluded = VersionHistoryCheckBox.IsChecked.GetValueOrDefault();
@@ -236,7 +235,22 @@ namespace TFSProjectMigration
             }
             else if (ItemMappingTab.IsSelected && e.OriginalSource is TabControl)
             {
-                // TODO: Load items
+                SourceItemComboBox.Items.Clear();
+                DestItemComboBox.Items.Clear();
+                foreach (var sourceItem in _writeTarget.WorkItemTypeMap.Keys.OrderBy(k => k))
+                {
+                    SourceItemComboBox.Items.Add(sourceItem);
+                }
+
+                foreach (WorkItemType targetItem in _writeTarget.WorkItemTypes)
+                {
+                    DestItemComboBox.Items.Add(targetItem.Name);
+                }
+
+                DestItemComboBox.Items.Add("Do not Migrate");
+
+                MappedItemListGrid.ItemsSource = _writeTarget.WorkItemTypeMap;
+                MappedItemListGrid.Items.Refresh();
             }
         }
 
@@ -423,13 +437,32 @@ namespace TFSProjectMigration
 
         private void MapItemsButton_Click(object sender, RoutedEventArgs e)
         {
-            throw new NotImplementedException();
+            if (SourceItemComboBox.SelectedItem == null || DestItemComboBox.SelectedItem == null)
+                return;
+
+            _writeTarget.WorkItemTypeMap[SourceItemComboBox.SelectedItem.ToString()] = DestItemComboBox.SelectedItem.ToString();
+
+            MappedItemListGrid.Items.Refresh();
+
         }
 
         private void NextButtonItemMapping_Click(object sender, RoutedEventArgs e)
         {
+            _fieldMap = _writeTarget.MapFields(_readSource.WorkItemTypes);
             FieldCopyTab.IsEnabled = true;
             FieldCopyTab.IsSelected = true;
+        }
+
+        private void SourceItemComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            DestItemComboBox.SelectedItem = null;
+            if (SourceItemComboBox.SelectedItem == null)
+                return;
+
+            var destItem = _writeTarget.WorkItemTypeMap[SourceItemComboBox.SelectedItem.ToString()];
+            if (DestItemComboBox.Items.Contains(destItem))
+                DestItemComboBox.SelectedItem = destItem;
+
         }
     }
 }

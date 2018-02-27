@@ -822,6 +822,7 @@ namespace TFSProjectMigration
 
         public void CreateDefaultItemMapping(WorkItemTypeCollection workItemTypesSource)
         {
+            WorkItemTypeMap.Clear();
             var typeMappingAgileToScrum = new Dictionary<string, string>() 
             {
                 { "Product Backlog Item", "User Story"},
@@ -848,6 +849,8 @@ namespace TFSProjectMigration
         }
 
         public Dictionary<string, string> WorkItemTypeMap { get; } = new Dictionary<string, string>();
+
+        public WorkItemTypeCollection WorkItemTypes => _workItemTypes;
 
         private WorkItemType getTargetWorkItemTypeFromSourceWorkItemType(WorkItemType sourceWorkItemType)
         {
