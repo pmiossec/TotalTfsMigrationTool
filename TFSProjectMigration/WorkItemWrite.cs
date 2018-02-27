@@ -699,49 +699,38 @@ namespace TFSProjectMigration
                 {
                     WorkItemType workItemTypeTarget = _workItemTypes[(string)list[0]];
 
-                    WorkItemType workItemTypeSource = null;
-                    if (workItemTypesSource.Contains((string)list[0]))
-                    {
-                        workItemTypeSource = workItemTypesSource[(string)list[0]];
-                    }
-                    else if (workItemTypeTarget.Name == "Product Backlog Item")
-                    {
-                        workItemTypeSource = workItemTypesSource["User Story"];
-                    }
-                    else if (workItemTypeTarget.Name == "Impediment")
-                    {
-                        workItemTypeSource = workItemTypesSource["Issue"];
-                    }
+                    var workItemTypeSourceName = WorkItemTypeMap.Where(m => m.Value == workItemTypeTarget.Name).Select(m => m.Key).FirstOrDefault();
+                    if (workItemTypeSourceName == null)
+                        continue;
 
-                    XmlDocument workItemTypeXmlSource = workItemTypeSource?.Export(false);
+                    WorkItemType workItemTypeSource = workItemTypesSource[workItemTypeSourceName];
+
+                    XmlDocument workItemTypeXmlSource = workItemTypeSource.Export(false);
                     XmlDocument workItemTypeXmlTarget = workItemTypeTarget.Export(false);
 
-                    if (workItemTypeXmlSource != null)
+                    XmlNodeList transitionsListSource = workItemTypeXmlSource.GetElementsByTagName("WORKFLOW");
+                    XmlNode transitions = transitionsListSource[0];
+
+                    XmlNodeList transitionsListTarget = workItemTypeXmlTarget.GetElementsByTagName("WORKFLOW");
+                    XmlNode transitionsTarget = transitionsListTarget[0];
+                    try
                     {
-                        XmlNodeList transitionsListSource = workItemTypeXmlSource.GetElementsByTagName("WORKFLOW");
-                        XmlNode transitions = transitionsListSource[0];
+                        string def = workItemTypeXmlTarget.InnerXml;
+                        string workflowSource = transitions.OuterXml;
+                        string workflowTarget = transitionsTarget.OuterXml;
 
-                        XmlNodeList transitionsListTarget = workItemTypeXmlTarget.GetElementsByTagName("WORKFLOW");
-                        XmlNode transitionsTarget = transitionsListTarget[0];
-                        string defTarget;
-                        try
-                        {
-                            string def = workItemTypeXmlTarget.InnerXml;
-                            string workflowSource = transitions.OuterXml;
-                            string workflowTarget = transitionsTarget.OuterXml;
-
-                            defTarget = def.Replace(workflowTarget, workflowSource);
-                            WorkItemType.Validate(Store.Projects[_projectName], defTarget);
-                            Store.Projects[_projectName].WorkItemTypes.Import(defTarget);
-                            fieldList.Remove(list);
-                            i--;
-                        }
-                        catch (Exception ex)
-                        {
-                            Logger.Error("Error Replacing work flow");
-                            error = error + "Error Replacing work flow for " + (string)list[0] + ":" + ex.Message + "\n";
-                        }
+                        var defTarget = def.Replace(workflowTarget, workflowSource);
+                        WorkItemType.Validate(Store.Projects[_projectName], defTarget);
+                        Store.Projects[_projectName].WorkItemTypes.Import(defTarget);
+                        fieldList.Remove(list);
+                        i--;
                     }
+                    catch (Exception ex)
+                    {
+                        Logger.Error("Error Replacing work flow");
+                        error = error + "Error Replacing work flow for " + (string)list[0] + ":" + ex.Message + "\n";
+                    }
+
                 }
             }
             return error;
