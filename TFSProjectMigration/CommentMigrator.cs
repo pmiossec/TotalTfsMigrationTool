@@ -157,9 +157,15 @@ namespace TFSProjectMigration
                 return RevisionMigrateAction.Skip;
 
             if (history.StartsWith("Associated with changeset"))
-                return RevisionMigrateAction.MigrateLink;
+            {
+                if (_shouldWorkItemsBeLinkedToGitCommits)
+                    return RevisionMigrateAction.MigrateLink;
+                return RevisionMigrateAction.Skip;
+            }
 
-            return RevisionMigrateAction.MigrateComment;
+            if (_areVersionHistoryCommentsIncluded)
+                return RevisionMigrateAction.MigrateComment;
+            return RevisionMigrateAction.Skip;
         }
 
         void RemoveImagesIfHistoryIsTooLong(ref string history)
