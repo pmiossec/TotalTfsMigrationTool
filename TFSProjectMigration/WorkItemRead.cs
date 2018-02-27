@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -41,38 +42,11 @@ namespace TFSProjectMigration
             return workItemCollection;
         }
 
-        public WorkItemCollection GetWorkItems(string project, bool isNotIncludeClosed, bool isNotIncludeRemoved, ProgressBar progressBar)
+        public WorkItemCollection GetWorkItems(string project, bool isNotIncludeClosed, bool isNotIncludeRemoved, ProgressBar progressBar, IEnumerable<string> workItemTypes)
         {
-            String query;
-            if (isNotIncludeClosed && isNotIncludeRemoved)
-            {
-                query = String.Format(" SELECT * " +
-                                                    " FROM WorkItems " +
-                                                    " WHERE [System.TeamProject] = '" + project +
-                                                    "' AND [System.State] <> 'Closed' AND [System.State] <> 'Removed' ORDER BY [System.Id]");
-            }
+            var query =
+                $"SELECT * FROM WorkItems WHERE [System.TeamProject] = '{project}' AND [System.WorkItemType] IN ({string.Join(", ", workItemTypes.Select(n => "'" + n + "'"))}) {(isNotIncludeClosed ? "AND [System.State] <> 'Closed'" : "")} {(isNotIncludeRemoved ? "AND[System.State] <> 'Removed'" : "")} ORDER BY [System.Id]";
 
-            else if (isNotIncludeRemoved)
-            {
-                query = String.Format(" SELECT * " +
-                                                   " FROM WorkItems " +
-                                                   " WHERE [System.TeamProject] = '" + project +
-                                                   "' AND [System.State] <> 'Removed' ORDER BY [System.Id]");
-            }
-            else if (isNotIncludeClosed)
-            {
-                query = String.Format(" SELECT * " +
-                                                   " FROM WorkItems " +
-                                                   " WHERE [System.TeamProject] = '" + project +
-                                                   "' AND [System.State] <> 'Closed'  ORDER BY [System.Id]");
-            }
-            else
-            {
-                query = String.Format(" SELECT * " +
-                                                   " FROM WorkItems " +
-                                                   " WHERE [System.TeamProject] = '" + project +
-                                                   "' ORDER BY [System.Id]");
-            }
             Debug.WriteLine(query);
             WorkItemCollection workItemCollection = Store.Query(query);
             SaveAttachments(workItemCollection, progressBar);

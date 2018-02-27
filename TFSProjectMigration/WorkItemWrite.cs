@@ -852,6 +852,15 @@ namespace TFSProjectMigration
 
         public WorkItemTypeCollection WorkItemTypes => _workItemTypes;
 
+        public IEnumerable<string> GetMappedWorkItems()
+        {
+            foreach (var sourceItem in WorkItemTypeMap.Keys)
+            {
+                if (WorkItemTypes.Contains(WorkItemTypeMap[sourceItem]))
+                    yield return sourceItem;
+            }
+        }
+
         private WorkItemType getTargetWorkItemTypeFromSourceWorkItemType(WorkItemType sourceWorkItemType)
         {
             if (!WorkItemTypeMap.ContainsKey(sourceWorkItemType.Name))
