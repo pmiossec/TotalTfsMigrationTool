@@ -166,11 +166,12 @@ namespace TFSProjectMigration
                     continue;
                 }
 
-                Hashtable fieldMap = ListToTable((List<object>)fieldMapAll[workItem.Type.Name]);
 
                 WorkItemType workItemTypeTarget = getTargetWorkItemTypeFromSourceWorkItemType(workItem.Type);
                 if (workItemTypeTarget == null)
                     continue;
+
+                Hashtable fieldMap = ListToTable((List<object>)fieldMapAll[workItemTypeTarget.Name]);
 
                 WorkItem newWorkItem = new WorkItem(workItemTypeTarget);
 
@@ -640,6 +641,8 @@ namespace TFSProjectMigration
             {
                 WorkItemType workItemTypeTarget = getTargetWorkItemTypeFromSourceWorkItemType(workItemTypeSource);
 
+                if (workItemTypeTarget == null)
+                    continue;
                 XmlDocument workItemTypeXmlSource = workItemTypeSource.Export(false);
                 XmlDocument workItemTypeXmlTarget = workItemTypeTarget.Export(false);
 
