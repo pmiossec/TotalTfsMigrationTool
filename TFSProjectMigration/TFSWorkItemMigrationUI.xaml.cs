@@ -1,56 +1,48 @@
 ﻿
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Collections;
-using System.Threading.Tasks;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
+using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
 using System.Windows.Forms;
-using Microsoft.TeamFoundation;
+using System.Xml;
+using log4net;
+using log4net.Config;
 using Microsoft.TeamFoundation.Client;
 using Microsoft.TeamFoundation.WorkItemTracking.Client;
-using Microsoft.TeamFoundation.TestManagement.Client;
-using Microsoft.TeamFoundation.Server;
-using System.ComponentModel;
-using System.Xml;
-using log4net.Config;
-using log4net;
-using System.Threading;
+using MessageBox = System.Windows.MessageBox;
+using TabControl = System.Windows.Controls.TabControl;
 
 namespace TFSProjectMigration
 {
     /// <summary>
     /// Interaction logic for TFSProjectMigrationUI.xaml
     /// </summary>
-    public partial class TFSWorkItemMigrationUI : Window
+    public partial class TfsWorkItemMigrationUi
     {
-        private TfsTeamProjectCollection sourceTFS;
-        private TfsTeamProjectCollection destinationTFS;
-        private WorkItemStore sourceStore;
-        private WorkItemStore destinationStore;
-        private Project sourceProject;
-        private Project destinationProject;
-        private static readonly ILog logger = LogManager.GetLogger(typeof(TFSWorkItemMigrationUI));
-        public int migrationState = 0;
-        private bool IsNotIncludeClosed = false;
-        private bool IsNotIncludeRemoved = false;
-        private WorkItemRead readSource;
-        private WorkItemWrite writeTarget;
-        private Hashtable fieldMap;
-        private Hashtable finalFieldMap;
-        private Hashtable copyingFieldSet;
-        private List<object> migrateTypeSet;
+        private TfsTeamProjectCollection _sourceTfs;
+        private TfsTeamProjectCollection _destinationTfs;
+        private WorkItemStore _sourceStore;
+        private WorkItemStore _destinationStore;
+        private Project _sourceProject;
+        private Project _destinationProject;
+        private static readonly ILog Logger = LogManager.GetLogger(typeof(TfsWorkItemMigrationUi));
+        public int MigrationState = 0;
+        private bool _isNotIncludeClosed;
+        private bool _isNotIncludeRemoved;
+        private bool _areVersionHistoryCommentsIncluded;
+        private bool _shouldWorkItemsBeLinkedToGitCommits;
+        private WorkItemRead _readSource;
+        private WorkItemWrite _writeTarget;
+        private Hashtable _fieldMap;
+        private Hashtable _finalFieldMap;
+        private Hashtable _copyingFieldSet;
+        private List<object> _migrateTypeSet;
 
-        public TFSWorkItemMigrationUI()
+        public TfsWorkItemMigrationUi()
         {
             InitializeComponent();
             XmlConfigurator.Configure();
@@ -71,15 +63,15 @@ namespace TFSProjectMigration
                 FieldToCopyGrid.ItemsSource = new List<object>();
                 WorkFlowListGrid.ItemsSource = new List<object>();
 
-                finalFieldMap = new Hashtable();
-                copyingFieldSet = new Hashtable();
-                migrateTypeSet = new List<object>();
-                sourceTFS = tpp.SelectedTeamProjectCollection;
-                sourceStore = (WorkItemStore)sourceTFS.GetService(typeof(WorkItemStore));
+                _finalFieldMap = new Hashtable();
+                _copyingFieldSet = new Hashtable();
+                _migrateTypeSet = new List<object>();
+                _sourceTfs = tpp.SelectedTeamProjectCollection;
+                _sourceStore = (WorkItemStore)_sourceTfs.GetService(typeof(WorkItemStore));
 
-                sourceProject = sourceStore.Projects[tpp.SelectedProjects[0].Name];
-                SourceProjectText.Text = string.Format("{0}/{1}", sourceTFS.Uri.ToString(), sourceProject.Name);
-                readSource = new WorkItemRead(sourceTFS, sourceProject);
+                _sourceProject = _sourceStore.Projects[tpp.SelectedProjects[0].Name];
+                SourceProjectText.Text = string.Format("{0}/{1}", _sourceTfs.Uri, _sourceProject.Name);
+                _readSource = new WorkItemRead(_sourceTfs, _sourceProject);
 
                 if ((string)ConnectionStatusLabel.Content == "Select a Source project")
                 {
@@ -87,7 +79,7 @@ namespace TFSProjectMigration
                 }
             }
         }
-
+        
         private void ConnectDestinationProjectButton_Click(object sender, RoutedEventArgs e)
         {
             TeamProjectPicker tpp = new TeamProjectPicker(TeamProjectPickerMode.SingleProject, false);
@@ -103,16 +95,16 @@ namespace TFSProjectMigration
                 MappedListGrid.ItemsSource = new List<object>();
                 FieldToCopyGrid.ItemsSource = new List<object>();
                 WorkFlowListGrid.ItemsSource = new List<object>();
-                finalFieldMap = new Hashtable();
-                copyingFieldSet = new Hashtable();
-                migrateTypeSet = new List<object>();
+                _finalFieldMap = new Hashtable();
+                _copyingFieldSet = new Hashtable();
+                _migrateTypeSet = new List<object>();
 
-                destinationTFS = tpp.SelectedTeamProjectCollection;
-                destinationStore = (WorkItemStore)destinationTFS.GetService(typeof(WorkItemStore));
+                _destinationTfs = tpp.SelectedTeamProjectCollection;
+                _destinationStore = (WorkItemStore)_destinationTfs.GetService(typeof(WorkItemStore));
 
-                destinationProject = destinationStore.Projects[tpp.SelectedProjects[0].Name];
-                DestinationProjectText.Text = string.Format("{0}/{1}", destinationTFS.Uri.ToString(), destinationProject.Name);
-                writeTarget = new WorkItemWrite(destinationTFS, destinationProject);
+                _destinationProject = _destinationStore.Projects[tpp.SelectedProjects[0].Name];
+                DestinationProjectText.Text = string.Format("{0}/{1}", _destinationTfs.Uri, _destinationProject.Name);
+                _writeTarget = new WorkItemWrite(_destinationTfs, _destinationProject);
 
                 if ((string)ConnectionStatusLabel.Content == "Select a Target project")
                 {
@@ -133,87 +125,90 @@ namespace TFSProjectMigration
             }
             else
             {
-                fieldMap = writeTarget.MapFields(readSource.workItemTypes);
-                IsNotIncludeClosed = (bool)ClosedTextBox.IsChecked;
-                IsNotIncludeRemoved = (bool)RemovedTextBox.IsChecked;
-                FieldCopyTab.IsEnabled = true;
-                FieldCopyTab.IsSelected = true;
+                _writeTarget.CreateDefaultItemMapping(_readSource.WorkItemTypes);
+                _isNotIncludeClosed = ClosedTextBox.IsChecked.GetValueOrDefault();
+                _isNotIncludeRemoved = RemovedTextBox.IsChecked.GetValueOrDefault();
+                _areVersionHistoryCommentsIncluded = VersionHistoryCheckBox.IsChecked.GetValueOrDefault();
+                _shouldWorkItemsBeLinkedToGitCommits = LinkToCommitsCheckBox.IsChecked.GetValueOrDefault();
+                ItemMappingTab.IsEnabled = true;
+                ItemMappingTab.IsSelected = true;
             }
         }
 
 
         public void projectMigration()
         {
-            logger.InfoFormat("--------------------------------Migration from '{0}' to '{1}' Start----------------------------------------------", sourceProject.Name, destinationProject.Name);
-            CheckTestPlanTextBlock.Dispatcher.BeginInvoke(new Action(delegate()
+            Logger.InfoFormat("--------------------------------Migration from '{0}' to '{1}' Start----------------------------------------------", _sourceProject.Name, _destinationProject.Name);
+            CheckTestPlanTextBlock.Dispatcher.BeginInvoke(new Action(delegate
             {
                 CheckTestPlanTextBlock.Visibility = Visibility.Hidden;
             }));
-            CheckLogTextBlock.Dispatcher.BeginInvoke(new Action(delegate()
+            CheckLogTextBlock.Dispatcher.BeginInvoke(new Action(delegate
             {
                 CheckLogTextBlock.Visibility = Visibility.Hidden;
             }));
-            MigratingLabel.Dispatcher.BeginInvoke(new Action(delegate()
+            MigratingLabel.Dispatcher.BeginInvoke(new Action(delegate
             {
                 MigratingLabel.Content = "Migrating...";
             }));
 
-            StatusBar.Dispatcher.BeginInvoke(new Action(delegate()
+            StatusBar.Dispatcher.BeginInvoke(new Action(delegate
             {
                 StatusBar.Visibility = Visibility.Visible;
             }));
-            WorkItemCollection source = readSource.GetWorkItems(sourceProject.Name, IsNotIncludeClosed, IsNotIncludeRemoved, StatusBar); //Get Workitems from source tfs 
-            XmlNode[] iterations = readSource.PopulateIterations(); //Get Iterations and Areas from source tfs 
 
-            StatusViwer.Dispatcher.BeginInvoke(new Action(delegate()
+            WorkItemCollection source = _readSource.GetWorkItems(_sourceProject.Name, _isNotIncludeClosed, _isNotIncludeRemoved, StatusBar, _writeTarget.GetMappedWorkItems()); //Get Workitems from source tfs 
+            XmlNode[] iterations = _readSource.PopulateIterations(); //Get Iterations and Areas from source tfs 
+
+            StatusViwer.Dispatcher.BeginInvoke(new Action(delegate
             {
                 StatusViwer.Content = "Generating Areas...";
             }));
-            writeTarget.GenerateAreas(iterations[0], sourceProject.Name); //Copy Areas
+            _writeTarget.GenerateAreas(iterations[0], _sourceProject.Name); //Copy Areas
 
-            StatusViwer.Dispatcher.BeginInvoke(new Action(delegate()
+            StatusViwer.Dispatcher.BeginInvoke(new Action(delegate
             {
                 StatusViwer.Content = StatusViwer.Content + "\nGenerating Iterations...";
             }));
-            writeTarget.GenerateIterations(iterations[1], sourceProject.Name); //Copy Iterations
+            _writeTarget.GenerateIterations(iterations[1], _sourceProject.Name); //Copy Iterations
 
-            StatusViwer.Dispatcher.BeginInvoke(new Action(delegate()
+            StatusViwer.Dispatcher.BeginInvoke(new Action(delegate
             {
                 StatusViwer.Content = StatusViwer.Content + "\nCopying Team Queries...";
             }));
-            writeTarget.SetTeamQueries(readSource.queryCol, sourceProject.Name); //Copy Queries
+            _writeTarget.SetTeamQueries(_readSource.QueryCol, _sourceProject.Name); //Copy Queries
 
-            StatusViwer.Dispatcher.BeginInvoke(new Action(delegate()
+            StatusViwer.Dispatcher.BeginInvoke(new Action(delegate
             {
                 StatusViwer.Content = StatusViwer.Content + "\nCopying Work Items...";
             }));
-            writeTarget.writeWorkItems(sourceStore, source, sourceProject.Name, StatusBar, finalFieldMap); //Copy Workitems
+            _writeTarget.writeWorkItems(_sourceStore, source, _sourceProject.Name, StatusBar, _finalFieldMap, _areVersionHistoryCommentsIncluded, _shouldWorkItemsBeLinkedToGitCommits); //Copy Workitems
 
-            StatusViwer.Dispatcher.BeginInvoke(new Action(delegate()
+            StatusViwer.Dispatcher.BeginInvoke(new Action(delegate
             {
                 StatusViwer.Content = StatusViwer.Content + "\nCopying Test Plans...";
             }));
-            TestPlanMigration tcm = new TestPlanMigration(sourceTFS, destinationTFS, sourceProject.Name, destinationProject.Name, writeTarget.itemMap, StatusBar);
+            TestPlanMigration tcm = new TestPlanMigration(_sourceTfs, _destinationTfs, _sourceProject.Name, _destinationProject.Name, _writeTarget.ItemMap, StatusBar);
             tcm.CopyTestPlans(); //Copy Test Plans
 
-            MigratingLabel.Dispatcher.BeginInvoke(new Action(delegate()
+            MigratingLabel.Dispatcher.BeginInvoke(new Action(delegate
             {
                 MigratingLabel.Content = "Project Migrated";
             }));
 
-            StatusBar.Dispatcher.BeginInvoke(new Action(delegate()
+            StatusBar.Dispatcher.BeginInvoke(new Action(delegate
             {
                 StatusBar.Visibility = Visibility.Hidden;
             }));
-            CheckTestPlanTextBlock.Dispatcher.BeginInvoke(new Action(delegate()
+            CheckTestPlanTextBlock.Dispatcher.BeginInvoke(new Action(delegate
             {
                 CheckTestPlanTextBlock.Visibility = Visibility.Visible;
             }));
-            CheckLogTextBlock.Dispatcher.BeginInvoke(new Action(delegate()
+            CheckLogTextBlock.Dispatcher.BeginInvoke(new Action(delegate
             {
                 CheckLogTextBlock.Visibility = Visibility.Visible;
             }));
-            logger.Info("--------------------------------Migration END----------------------------------------------");
+            Logger.Info("--------------------------------Migration END----------------------------------------------");
         }
 
         private void MigrationButton_Click(object sender, RoutedEventArgs e)
@@ -223,21 +218,40 @@ namespace TFSProjectMigration
             StatusViwer.Content = "";
             MigratingLabel.Content = "";
             StatusBar.Value = 0;
-            Thread migrationThread = new Thread(new ThreadStart(projectMigration));
+            Thread migrationThread = new Thread(projectMigration);
             migrationThread.Start();
         }
 
         private void MigrationTabControl_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (FieldMappingTab.IsSelected && (e.OriginalSource is System.Windows.Controls.TabControl))
+            if (FieldMappingTab.IsSelected && e.OriginalSource is TabControl)
             {
-                SetFieldTypeList(fieldMap.Keys);
+                SetFieldTypeList(_fieldMap.Keys);
             }
-            else if (FieldCopyTab.IsSelected && (e.OriginalSource is System.Windows.Controls.TabControl))
+            else if (FieldCopyTab.IsSelected && e.OriginalSource is TabControl)
             {
-                SetListsCopyFieldsTab(fieldMap.Keys);
-                WorkFlowListGrid.ItemsSource = migrateTypeSet;
+                SetListsCopyFieldsTab(_fieldMap.Keys);
+                WorkFlowListGrid.ItemsSource = _migrateTypeSet;
                 WorkFlowListGrid.Items.Refresh();
+            }
+            else if (ItemMappingTab.IsSelected && e.OriginalSource is TabControl)
+            {
+                SourceItemComboBox.Items.Clear();
+                DestItemComboBox.Items.Clear();
+                foreach (var sourceItem in _writeTarget.WorkItemTypeMap.Keys.OrderBy(k => k))
+                {
+                    SourceItemComboBox.Items.Add(sourceItem);
+                }
+
+                foreach (WorkItemType targetItem in _writeTarget.WorkItemTypes)
+                {
+                    DestItemComboBox.Items.Add(targetItem.Name);
+                }
+
+                DestItemComboBox.Items.Add("Do not Migrate");
+
+                MappedItemListGrid.ItemsSource = _writeTarget.WorkItemTypeMap;
+                MappedItemListGrid.Items.Refresh();
             }
         }
 
@@ -251,9 +265,9 @@ namespace TFSProjectMigration
 
         private void SetFieldLists(string fieldType)
         {
-            List<List<string>> fieldList = (List<List<string>>)fieldMap[fieldType];
-            List<string> sourceList = (List<string>)fieldList.ElementAt(0);
-            List<string> targetList = (List<string>)fieldList.ElementAt(1);
+            List<List<string>> fieldList = (List<List<string>>)_fieldMap[fieldType];
+            List<string> sourceList = fieldList.ElementAt(0);
+            List<string> targetList = fieldList.ElementAt(1);
 
             SourceFieldGrid.ItemsSource = sourceList;
             TargetFieldGrid.ItemsSource = targetList;
@@ -269,7 +283,7 @@ namespace TFSProjectMigration
                 DestFieldComboBox.Items.Add(field);
             }
 
-            List<object> tempList = (List<object>)finalFieldMap[(string)FieldTypesComboBox.SelectedValue];
+            List<object> tempList = (List<object>)_finalFieldMap[(string)FieldTypesComboBox.SelectedValue];
             MappedListGrid.ItemsSource = tempList;
             MappedListGrid.Items.Refresh();
 
@@ -282,13 +296,13 @@ namespace TFSProjectMigration
 
         private void SetFieldTypeList(ICollection keys)
         {
-            if (finalFieldMap.Count == 0)
+            if (_finalFieldMap.Count == 0)
             {
                 FieldTypesComboBox.Items.Clear();
                 foreach (string key in keys)
                 {
                     List<object> list = new List<object>();
-                    finalFieldMap.Add(key, list);
+                    _finalFieldMap.Add(key, list);
                     FieldTypesComboBox.Items.Add(key);
                 }
                 FieldTypesComboBox.Items.Refresh();
@@ -297,13 +311,13 @@ namespace TFSProjectMigration
 
         private void SetListsCopyFieldsTab(ICollection keys)
         {
-            if (copyingFieldSet.Count == 0)
+            if (_copyingFieldSet.Count == 0)
             {
                 FieldTypes2ComboBox.Items.Clear();
                 foreach (string key in keys)
                 {
-                    List<List<string>> fieldList = (List<List<string>>)fieldMap[key];
-                    List<string> sourceList = (List<string>)fieldList.ElementAt(0);
+                    List<List<string>> fieldList = (List<List<string>>)_fieldMap[key];
+                    List<string> sourceList = fieldList.ElementAt(0);
                     List<object> list = new List<object>();
                     foreach (string value in sourceList)
                     {
@@ -312,13 +326,13 @@ namespace TFSProjectMigration
                         row[1] = false;
                         list.Add(row);
                     }
-                    copyingFieldSet.Add(key, list);
+                    _copyingFieldSet.Add(key, list);
                     FieldTypes2ComboBox.Items.Add(key);
 
                     object[] typeRow = new object[2];
                     typeRow[0] = key;
                     typeRow[1] = false;
-                    migrateTypeSet.Add(typeRow);
+                    _migrateTypeSet.Add(typeRow);
                 }
                 FieldTypes2ComboBox.Items.Refresh();
             }
@@ -327,7 +341,7 @@ namespace TFSProjectMigration
 
         private void MapButton_Click(object sender, RoutedEventArgs e)
         {
-            List<object> tempList = (List<object>)finalFieldMap[(string)FieldTypesComboBox.SelectedValue];
+            List<object> tempList = (List<object>)_finalFieldMap[(string)FieldTypesComboBox.SelectedValue];
             object[] row = new object[3];
             row[0] = SourceFieldComboBox.SelectedValue;
             row[1] = DestFieldComboBox.SelectedValue;
@@ -343,7 +357,7 @@ namespace TFSProjectMigration
 
         private void RemoveMapButton_Click(object sender, RoutedEventArgs e)
         {
-            List<object> tempList = (List<object>)finalFieldMap[(string)FieldTypesComboBox.SelectedValue];
+            List<object> tempList = (List<object>)_finalFieldMap[(string)FieldTypesComboBox.SelectedValue];
             foreach (object[] row in tempList.ToArray())
             {
                 if ((bool)row[2])
@@ -367,7 +381,7 @@ namespace TFSProjectMigration
         {
             if (FieldTypes2ComboBox.SelectedValue != null)
             {
-                List<object> tempList = (List<object>)copyingFieldSet[(string)FieldTypes2ComboBox.SelectedValue];
+                List<object> tempList = (List<object>)_copyingFieldSet[(string)FieldTypes2ComboBox.SelectedValue];
                 FieldToCopyGrid.ItemsSource = tempList;
             }
         }
@@ -376,15 +390,15 @@ namespace TFSProjectMigration
         {
             FieldMappingTab.IsEnabled = true;
             FieldMappingTab.IsSelected = true;
-            fieldMap = writeTarget.MapFields(readSource.workItemTypes);
+            _fieldMap = _writeTarget.MapFields(_readSource.WorkItemTypes);
         }
 
         private void CopyFieldsButton_Click(object sender, RoutedEventArgs e)
         {
-            writeTarget.SetFieldDefinitions(readSource.workItemTypes, copyingFieldSet);
-            foreach (string key in copyingFieldSet.Keys)
+            _writeTarget.SetFieldDefinitions(_readSource.WorkItemTypes, _copyingFieldSet);
+            foreach (string key in _copyingFieldSet.Keys)
             {
-                List<object> list = (List<object>)copyingFieldSet[key];
+                List<object> list = (List<object>)_copyingFieldSet[key];
                 for (int i = 0; i < list.Count; i++)
                 {
                     object[] field = (object[])list[i];
@@ -400,38 +414,56 @@ namespace TFSProjectMigration
 
         private void CopyWorkFlowsButton_Click(object sender, RoutedEventArgs e)
         {
-            string error = writeTarget.ReplaceWorkFlow(readSource.workItemTypes, migrateTypeSet);
+            string error = _writeTarget.ReplaceWorkFlow(_readSource.WorkItemTypes, _migrateTypeSet);
             if (error.Length > 0)
             {
-                System.Windows.MessageBox.Show(error, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(error, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
             WorkFlowListGrid.Items.Refresh();
-            //for (int i = 0; i < migrateTypeSet.Count; i++)
-            //{
-            //    object[] field = (object[])migrateTypeSet[i];
-            //    if ((bool)field[1])
-            //    {
-            //        ItemCollection items = (ItemCollection)WorkFlowListGrid.Items.GetItemAt(i);
-            //        foreach (ItemsControl item in items)
-            //        {
-            //            item.IsEnabled = false;
-            //        }
-            //    }
-            //} 
         }
 
         private void CheckTestPlanHyperLink_Click(object sender, RoutedEventArgs e)
         {
             TestPlanViewUI ts = new TestPlanViewUI();
-            ts.tfs = destinationTFS;
-            ts.targetProjectName = destinationProject.Name;
+            ts.tfs = _destinationTfs;
+            ts.targetProjectName = _destinationProject.Name;
             ts.printProjectName();
             ts.Show();
         }
 
         private void CheckLog_Click(object sender, RoutedEventArgs e)
         {
-            System.Diagnostics.Process.Start(@"Log\Log-File");
+            Process.Start(@"Log\Log-File");
+        }
+
+        private void MapItemsButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (SourceItemComboBox.SelectedItem == null || DestItemComboBox.SelectedItem == null)
+                return;
+
+            _writeTarget.WorkItemTypeMap[SourceItemComboBox.SelectedItem.ToString()] = DestItemComboBox.SelectedItem.ToString();
+
+            MappedItemListGrid.Items.Refresh();
+
+        }
+
+        private void NextButtonItemMapping_Click(object sender, RoutedEventArgs e)
+        {
+            _fieldMap = _writeTarget.MapFields(_readSource.WorkItemTypes);
+            FieldCopyTab.IsEnabled = true;
+            FieldCopyTab.IsSelected = true;
+        }
+
+        private void SourceItemComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            DestItemComboBox.SelectedItem = null;
+            if (SourceItemComboBox.SelectedItem == null)
+                return;
+
+            var destItem = _writeTarget.WorkItemTypeMap[SourceItemComboBox.SelectedItem.ToString()];
+            if (DestItemComboBox.Items.Contains(destItem))
+                DestItemComboBox.SelectedItem = destItem;
+
         }
     }
 }

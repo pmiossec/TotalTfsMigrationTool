@@ -32,7 +32,7 @@ namespace TFSProjectMigration
             set { _tfs = value; }
         }
         private string projectName = "aa";
-        private Window mainWindow;
+
         public string targetProjectName
         {
             get { return projectName; }
