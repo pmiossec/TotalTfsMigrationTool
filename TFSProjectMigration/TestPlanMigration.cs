@@ -21,7 +21,7 @@ namespace TFSProjectMigration
         public Hashtable workItemMap;
         private ProgressBar progressBar;
         private String projectName;
-        private static readonly ILog logger = LogManager.GetLogger(typeof(TFSWorkItemMigrationUI));
+        private static readonly ILog logger = LogManager.GetLogger(typeof(TfsWorkItemMigrationUi));
 
         public TestPlanMigration(TfsTeamProjectCollection sourceTfs, TfsTeamProjectCollection destinationTfs, string sourceProject, string destinationProject, Hashtable workItemMap, ProgressBar progressBar)
         {

@@ -212,8 +212,6 @@
       <HintPath>..\packages\Microsoft.TeamFoundationServer.ExtendedClient.15.98.0-preview\lib\net45\Microsoft.TeamFoundation.WorkItemTracking.Common.dll</HintPath>
       <Private>True</Private>
     </Reference>
-    <Reference Include="Microsoft.TeamFoundation.WorkItemTracking.Controls, Version=12.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL" />
-    <Reference Include="Microsoft.TeamFoundation.WorkItemTracking.ControlsCore, Version=12.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL" />
     <Reference Include="Microsoft.TeamFoundation.WorkItemTracking.Proxy, Version=15.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
       <HintPath>..\packages\Microsoft.TeamFoundationServer.ExtendedClient.15.98.0-preview\lib\net45\Microsoft.TeamFoundation.WorkItemTracking.Proxy.dll</HintPath>
       <Private>True</Private>
@@ -286,6 +284,8 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="CommentMigrator.cs" />
+    <Compile Include="GitRepoIntegration.cs" />
     <Compile Include="ImageHelpers.cs" />
     <Compile Include="ItemTypes.cs" />
     <Compile Include="TestPlanMigration.cs" />

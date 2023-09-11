@@ -1,83 +1,59 @@
 ﻿using System;
-using System.Linq;
-using Microsoft.TeamFoundation.Server;
-using Microsoft.TeamFoundation.Client;
-using Microsoft.TeamFoundation.WorkItemTracking.Client;
-using System.Xml;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
+using System.Linq;
+using System.Net;
+using System.Windows.Controls;
+using System.Xml;
 using log4net;
+using Microsoft.TeamFoundation.Client;
+using Microsoft.TeamFoundation.Server;
+using Microsoft.TeamFoundation.WorkItemTracking.Client;
 
 namespace TFSProjectMigration
 {
     public class WorkItemRead
     {
-        private TfsTeamProjectCollection tfs;
-        public WorkItemStore store;
-        public QueryHierarchy queryCol;
-        private String projectName;
-        public WorkItemTypeCollection workItemTypes;
-        private static readonly ILog logger = LogManager.GetLogger(typeof(TFSWorkItemMigrationUI));
+        private TfsTeamProjectCollection _tfs;
+        public WorkItemStore Store;
+        public QueryHierarchy QueryCol;
+        private String _projectName;
+        public WorkItemTypeCollection WorkItemTypes;
+        private static readonly ILog Logger = LogManager.GetLogger(typeof(TfsWorkItemMigrationUi));
 
         public WorkItemRead(TfsTeamProjectCollection tfs, Project sourceProject)
         {
-            this.tfs = tfs;
-            projectName = sourceProject.Name;
-            store = (WorkItemStore)tfs.GetService(typeof(WorkItemStore));
-            queryCol = store.Projects[sourceProject.Name].QueryHierarchy;
-            workItemTypes = store.Projects[sourceProject.Name].WorkItemTypes;
+            _tfs = tfs;
+            _projectName = sourceProject.Name;
+            Store = (WorkItemStore)tfs.GetService(typeof(WorkItemStore));
+            QueryCol = Store.Projects[sourceProject.Name].QueryHierarchy;
+            WorkItemTypes = Store.Projects[sourceProject.Name].WorkItemTypes;
         }
 
         /* Get required work items from project and save existing attachments of workitems to local folder */
-        public WorkItemCollection GetWorkItems(string project, System.Windows.Controls.ProgressBar ProgressBar)
+        public WorkItemCollection GetWorkItems(string project, ProgressBar progressBar)
         {
-            WorkItemCollection workItemCollection = store.Query(" SELECT * " +
+            WorkItemCollection workItemCollection = Store.Query(" SELECT * " +
                                                                  " FROM WorkItems " +
                                                                  " WHERE [System.TeamProject] = '" + project +
                                                                  "' AND [System.State] <> 'Closed' ORDER BY [System.Id]");
-            SaveAttachments(workItemCollection, ProgressBar);
+            SaveAttachments(workItemCollection, progressBar);
             return workItemCollection;
         }
 
-
-        public WorkItemCollection GetWorkItems(string project, bool IsNotIncludeClosed, bool IsNotIncludeRemoved, System.Windows.Controls.ProgressBar ProgressBar)
+        public WorkItemCollection GetWorkItems(string project, bool isNotIncludeClosed, bool isNotIncludeRemoved, ProgressBar progressBar, IEnumerable<string> workItemTypes)
         {
-            String query = "";
-            if (IsNotIncludeClosed && IsNotIncludeRemoved)
-            {
-                query = String.Format(" SELECT * " +
-                                                    " FROM WorkItems " +
-                                                    " WHERE [System.TeamProject] = '" + project +
-                                                    "' AND [System.State] <> 'Closed' AND [System.State] <> 'Removed' ORDER BY [System.Id]");
-            }
+            var query =
+                $"SELECT * FROM WorkItems WHERE [System.TeamProject] = '{project}' AND [System.WorkItemType] IN ({string.Join(", ", workItemTypes.Select(n => "'" + n + "'"))}) {(isNotIncludeClosed ? "AND [System.State] <> 'Closed'" : "")} {(isNotIncludeRemoved ? "AND[System.State] <> 'Removed'" : "")} ORDER BY [System.Id]";
 
-            else if (IsNotIncludeRemoved)
-            {
-                query = String.Format(" SELECT * " +
-                                                   " FROM WorkItems " +
-                                                   " WHERE [System.TeamProject] = '" + project +
-                                                   "' AND [System.State] <> 'Removed' ORDER BY [System.Id]");
-            }
-            else if (IsNotIncludeClosed)
-            {
-                query = String.Format(" SELECT * " +
-                                                   " FROM WorkItems " +
-                                                   " WHERE [System.TeamProject] = '" + project +
-                                                   "' AND [System.State] <> 'Closed'  ORDER BY [System.Id]");
-            }
-            else
-            {
-                query = String.Format(" SELECT * " +
-                                                   " FROM WorkItems " +
-                                                   " WHERE [System.TeamProject] = '" + project +
-                                                   "' ORDER BY [System.Id]");
-            }
-            System.Diagnostics.Debug.WriteLine(query);
-            WorkItemCollection workItemCollection = store.Query(query);
-            SaveAttachments(workItemCollection, ProgressBar);
+            Debug.WriteLine(query);
+            WorkItemCollection workItemCollection = Store.Query(query);
+            SaveAttachments(workItemCollection, progressBar);
             return workItemCollection;
         }
         /* Save existing attachments of workitems to local folders of workitem ID */
-        private void SaveAttachments(WorkItemCollection workItemCollection, System.Windows.Controls.ProgressBar ProgressBar)
+        private void SaveAttachments(WorkItemCollection workItemCollection, ProgressBar progressBar)
         {
             if (!Directory.Exists(@"Attachments"))
             {
@@ -88,7 +64,7 @@ namespace TFSProjectMigration
                 EmptyFolder(new DirectoryInfo(@"Attachments"));
             }
 
-            System.Net.WebClient webClient = new System.Net.WebClient();
+            WebClient webClient = new WebClient();
             webClient.UseDefaultCredentials = true;
 
             int index = 0;
@@ -118,15 +94,15 @@ namespace TFSProjectMigration
                         }
                         catch (Exception)
                         {
-                            logger.Info("Error downloading attachment for work item : " + wi.Id + " Type: " + wi.Type.Name);
+                            Logger.Info("Error downloading attachment for work item : " + wi.Id + " Type: " + wi.Type.Name);
                         }
                     }
                 }
                 index++;
-                ProgressBar.Dispatcher.BeginInvoke(new Action(delegate ()
+                var index1 = index;
+                progressBar.Dispatcher.BeginInvoke(new Action(delegate
                 {
-                    float progress = (float)index / (float)workItemCollection.Count;
-                    ProgressBar.Value = ((float)index / (float)workItemCollection.Count) * 100;
+                    progressBar.Value = index1 / (float)workItemCollection.Count * 100;
                 }));
             }
         }
@@ -149,9 +125,9 @@ namespace TFSProjectMigration
         /* Return Areas and Iterations of the project */
         public XmlNode[] PopulateIterations()
         {
-            ICommonStructureService css = (ICommonStructureService)tfs.GetService(typeof(ICommonStructureService));
+            ICommonStructureService css = (ICommonStructureService)_tfs.GetService(typeof(ICommonStructureService));
             //Gets Area/Iteration base Project
-            ProjectInfo projectInfo = css.GetProjectFromName(projectName);
+            ProjectInfo projectInfo = css.GetProjectFromName(_projectName);
             NodeInfo[] nodes = css.ListStructures(projectInfo.Uri);
 
             XmlElement areaTree = css.GetNodesXml(new[] { nodes.Single(n => n.StructureType == "ProjectModelHierarchy").Uri }, true);
@@ -160,7 +136,13 @@ namespace TFSProjectMigration
             XmlNode areaNodes = areaTree.ChildNodes[0];
             XmlNode iterationsNodes = iterationsTree.ChildNodes[0];
 
-            return new XmlNode[] { areaNodes, iterationsNodes };
+            return new[] { areaNodes, iterationsNodes };
         }
+
+        
+
+
+
+
     }
 }
